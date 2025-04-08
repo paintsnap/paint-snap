@@ -6,15 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadModal } from "@/components/modals/UploadModal";
 import { PhotoWithAnnotations } from "@shared/schema";
-import { UploadCloud, Edit, ChevronRight, Camera } from "lucide-react";
+import { UploadCloud, Edit, ChevronRight, Camera, LogOut, LogIn, User } from "lucide-react";
 import { formatDate } from "@/lib/utils/image-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "../hooks/use-auth";
 
 export default function Gallery() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("gallery");
   const { toast } = useToast();
+  const { user, profile, loading, signInWithGoogle, signOut } = useAuth();
 
   const { data: photos, isLoading, error } = useQuery<PhotoWithAnnotations[]>({
     queryKey: ["/api/photos"],
@@ -46,10 +48,35 @@ export default function Gallery() {
           <h1 className="ml-3 text-xl font-semibold font-sans">Photo Annotator</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <Button onClick={openUploadModal} className="bg-[#2196F3] hover:bg-blue-600">
-            <UploadCloud className="h-5 w-5 mr-2" />
-            Upload Photo
-          </Button>
+          {user ? (
+            <>
+              <div className="hidden md:flex items-center mr-2">
+                {profile?.photoUrl && (
+                  <img 
+                    src={profile.photoUrl} 
+                    alt={profile.displayName || "User"} 
+                    className="w-8 h-8 rounded-full mr-2"
+                  />
+                )}
+                <span className="text-sm font-medium text-gray-700">
+                  {profile?.displayName || "User"}
+                </span>
+              </div>
+              <Button onClick={openUploadModal} className="bg-[#2196F3] hover:bg-blue-600">
+                <UploadCloud className="h-5 w-5 mr-2" />
+                Upload Photo
+              </Button>
+              <Button onClick={signOut} variant="outline" className="border-gray-300">
+                <LogOut className="h-5 w-5 mr-2" />
+                <span className="hidden md:inline">Sign Out</span>
+              </Button>
+            </>
+          ) : (
+            <Button onClick={signInWithGoogle} className="bg-[#2196F3] hover:bg-blue-600">
+              <LogIn className="h-5 w-5 mr-2" />
+              Sign In with Google
+            </Button>
+          )}
         </div>
       </nav>
 
@@ -81,12 +108,22 @@ export default function Gallery() {
             <Camera className="mx-auto h-16 w-16 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900 font-sans">No photos yet</h3>
             <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-              Get started by uploading your first photo. You can add annotations by clicking on specific areas of the image.
+              {user ? 
+                "Get started by uploading your first photo. You can add annotations by clicking on specific areas of the image." :
+                "Sign in to upload and annotate your photos. The app allows you to create detailed notes on specific areas of your images."
+              }
             </p>
-            <Button onClick={openUploadModal} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
-              <UploadCloud className="h-5 w-5 mr-2" />
-              Upload a photo
-            </Button>
+            {user ? (
+              <Button onClick={openUploadModal} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
+                <UploadCloud className="h-5 w-5 mr-2" />
+                Upload a photo
+              </Button>
+            ) : (
+              <Button onClick={signInWithGoogle} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
+                <LogIn className="h-5 w-5 mr-2" />
+                Sign in with Google
+              </Button>
+            )}
           </div>
         )}
 
@@ -223,15 +260,17 @@ export default function Gallery() {
         )}
 
         {/* Floating action button for mobile */}
-        <div className="fixed bottom-6 right-6 md:hidden">
-          <Button 
-            onClick={openUploadModal} 
-            size="icon" 
-            className="w-14 h-14 rounded-full bg-[#2196F3] hover:bg-blue-600 shadow-lg"
-          >
-            <UploadCloud className="h-6 w-6" />
-          </Button>
-        </div>
+        {user && (
+          <div className="fixed bottom-6 right-6 md:hidden">
+            <Button 
+              onClick={openUploadModal} 
+              size="icon" 
+              className="w-14 h-14 rounded-full bg-[#2196F3] hover:bg-blue-600 shadow-lg"
+            >
+              <UploadCloud className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
       </main>
 
       {/* Upload Modal */}

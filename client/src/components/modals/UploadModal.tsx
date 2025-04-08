@@ -10,12 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadCloud, X, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, X, LogIn } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { fileToDataUrl } from "@/lib/utils/image-utils";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "../../hooks/use-auth";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user, signInWithGoogle } = useAuth();
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -138,94 +140,111 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="photo-name" className="font-medium">
-                Photo Name
-              </Label>
-              <Input
-                id="photo-name"
-                placeholder="e.g., Living Room"
-                value={photoName}
-                onChange={(e) => setPhotoName(e.target.value)}
-                disabled={uploadMutation.isPending}
-                required
-              />
+        {!user ? (
+          <div className="py-6 text-center">
+            <div className="mb-4 flex justify-center">
+              <LogIn className="h-12 w-12 text-gray-400" />
             </div>
-            
-            <div className="grid gap-2">
-              <Label className="font-medium">Upload Photo</Label>
-              <div
-                className={`border-2 border-dashed rounded-md p-6 text-center transition-colors cursor-pointer ${
-                  isDragging ? "border-primary bg-primary/5" : "border-gray-300 hover:bg-gray-50"
-                } ${previewUrl ? "p-2" : "p-6"}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById("file-input")?.click()}
-              >
-                <input
-                  type="file"
-                  id="file-input"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleFileChange}
+            <h3 className="text-lg font-medium mb-2">Sign in required</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Please sign in with your Google account to upload photos.
+            </p>
+            <Button onClick={signInWithGoogle} className="bg-[#2196F3] hover:bg-blue-600">
+              <LogIn className="h-5 w-5 mr-2" />
+              Sign In with Google
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="photo-name" className="font-medium">
+                  Photo Name
+                </Label>
+                <Input
+                  id="photo-name"
+                  placeholder="e.g., Living Room"
+                  value={photoName}
+                  onChange={(e) => setPhotoName(e.target.value)}
                   disabled={uploadMutation.isPending}
+                  required
                 />
-                
-                {previewUrl ? (
-                  <div className="relative">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-h-48 mx-auto rounded-md object-contain"
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedFile(null);
-                        setPreviewUrl(null);
-                      }}
-                      disabled={uploadMutation.isPending}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-500">
-                      Drag and drop your photo here or click to browse
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      Supported formats: JPG, PNG, WEBP
-                    </p>
-                  </>
-                )}
+              </div>
+              
+              <div className="grid gap-2">
+                <Label className="font-medium">Upload Photo</Label>
+                <div
+                  className={`border-2 border-dashed rounded-md p-6 text-center transition-colors cursor-pointer ${
+                    isDragging ? "border-primary bg-primary/5" : "border-gray-300 hover:bg-gray-50"
+                  } ${previewUrl ? "p-2" : "p-6"}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById("file-input")?.click()}
+                >
+                  <input
+                    type="file"
+                    id="file-input"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    disabled={uploadMutation.isPending}
+                  />
+                  
+                  {previewUrl ? (
+                    <div className="relative">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="max-h-48 mx-auto rounded-md object-contain"
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          setPreviewUrl(null);
+                        }}
+                        disabled={uploadMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-500">
+                        Drag and drop your photo here or click to browse
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        Supported formats: JPG, PNG, WEBP
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={uploadMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!photoName.trim() || !selectedFile || uploadMutation.isPending}
-            >
-              {uploadMutation.isPending ? "Uploading..." : "Upload"}
-            </Button>
-          </DialogFooter>
-        </form>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={uploadMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!photoName.trim() || !selectedFile || uploadMutation.isPending}
+                className="bg-[#2196F3] hover:bg-blue-600"
+              >
+                {uploadMutation.isPending ? "Uploading..." : "Upload"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
