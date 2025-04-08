@@ -15,8 +15,15 @@ export function handleZodError(error: ZodError, res: Response) {
 
 // Auth middleware to check if user is authenticated
 export const requireAuth: RequestHandler = (req, res, next) => {
-  if (!req.session || !req.session.userId) {
+  if (!req.isAuthenticated() && (!req.session || !req.session.userId)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  
+  // If there's no userId in session but user is authenticated via passport
+  if (req.isAuthenticated() && !req.session?.userId && req.user) {
+    // Add user ID to session
+    req.session!.userId = (req.user as any).id;
+  }
+  
   next();
 };
