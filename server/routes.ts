@@ -1,30 +1,64 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from "express";
 import { insertPhotoSchema, insertAnnotationSchema } from "@shared/schema";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import pkg from "pg";
+const { Pool } = pkg;
 import { ZodError } from "zod";
-import { fromZodError } from 'zod-validation-error';
+import { handleZodError, requireAuth } from "./utils";
 
-// Helper for validation errors
-function handleZodError(error: unknown, res: Response) {
-  if (error instanceof ZodError) {
-    const validationError = fromZodError(error);
-    return res.status(400).json({ message: validationError.message });
+// Add session type for TypeScript
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
   }
-  return res.status(500).json({ message: "Internal server error" });
 }
 
+// Import route modules
+import authRoutes from "./routes/auth";
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up PostgreSQL session store
+  const PgStore = connectPgSimple(session);
+  const sessionPool = new Pool({
+    connectionString: process.env.DATABASE_URL
+  });
+
+  // Session middleware
+  app.use(session({
+    store: new PgStore({
+      pool: sessionPool,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'annotation-app-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+    },
+  }));
+
+
+
   // prefix all routes with /api
   const apiRouter = express.Router();
+  
+  // Auth routes
+  apiRouter.use('/auth', authRoutes);
 
   // PHOTO ROUTES
   
   // Get all photos for the gallery
-  apiRouter.get("/photos", async (_req, res) => {
+  apiRouter.get("/photos", async (req, res) => {
     try {
-      const photos = await storage.getAllPhotos();
+      // Get userId from session if authenticated
+      const userId = req.session?.userId;
+      const photos = await storage.getAllPhotos(userId);
       res.json(photos);
     } catch (error) {
       console.error("Error fetching photos:", error);
@@ -86,33 +120,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new photo
-  apiRouter.post("/photos", async (req, res) => {
+  apiRouter.post("/photos", requireAuth, async (req, res) => {
     try {
-      const photoData = insertPhotoSchema.parse(req.body);
+      // Add userId from session
+      const userId = req.session!.userId!;
+      const photoData = insertPhotoSchema.parse({
+        ...req.body,
+        userId
+      });
       const newPhoto = await storage.createPhoto(photoData);
       res.status(201).json(newPhoto);
     } catch (error) {
       console.error("Error creating photo:", error);
-      return handleZodError(error, res);
+      if (error instanceof ZodError) {
+        return handleZodError(error, res);
+      }
+      res.status(500).json({ message: "Failed to create photo" });
     }
   });
 
   // Update a photo's name
-  apiRouter.patch("/photos/:id", async (req, res) => {
+  apiRouter.patch("/photos/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid photo ID" });
       }
 
+      // Get userId from session
+      const userId = req.session!.userId!;
+
       const { name } = req.body;
       if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: "Name is required" });
       }
 
-      const updatedPhoto = await storage.updatePhoto(id, name);
+      const updatedPhoto = await storage.updatePhoto(id, name, userId);
       if (!updatedPhoto) {
-        return res.status(404).json({ message: "Photo not found" });
+        return res.status(404).json({ message: "Photo not found or you don't have permission to update it" });
       }
 
       res.json(updatedPhoto);
@@ -123,16 +168,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a photo
-  apiRouter.delete("/photos/:id", async (req, res) => {
+  apiRouter.delete("/photos/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid photo ID" });
       }
 
-      const deleted = await storage.deletePhoto(id);
+      // Get userId from session
+      const userId = req.session!.userId!;
+      
+      const deleted = await storage.deletePhoto(id, userId);
       if (!deleted) {
-        return res.status(404).json({ message: "Photo not found" });
+        return res.status(404).json({ message: "Photo not found or you don't have permission to delete it" });
       }
 
       res.status(204).send();
@@ -161,12 +209,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new annotation
-  apiRouter.post("/photos/:photoId/annotations", async (req, res) => {
+  apiRouter.post("/photos/:photoId/annotations", requireAuth, async (req, res) => {
     try {
       const photoId = parseInt(req.params.photoId, 10);
       if (isNaN(photoId)) {
         return res.status(400).json({ message: "Invalid photo ID" });
       }
+
+      // Get user ID from session
+      const userId = req.session!.userId!;
 
       // Check if photo exists
       const photo = await storage.getPhotoById(photoId);
@@ -176,33 +227,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const annotationData = insertAnnotationSchema.parse({
         ...req.body,
-        photoId
+        photoId,
+        userId
       });
 
       const newAnnotation = await storage.createAnnotation(annotationData);
       res.status(201).json(newAnnotation);
     } catch (error) {
       console.error("Error creating annotation:", error);
-      return handleZodError(error, res);
+      if (error instanceof ZodError) {
+        return handleZodError(error, res);
+      }
+      res.status(500).json({ message: "Failed to create annotation" });
     }
   });
 
   // Update an annotation
-  apiRouter.patch("/annotations/:id", async (req, res) => {
+  apiRouter.patch("/annotations/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid annotation ID" });
       }
 
+      // Get userId from session
+      const userId = req.session!.userId!;
+
       const { title, content } = req.body;
       if (!title || !content || typeof title !== 'string' || typeof content !== 'string') {
         return res.status(400).json({ message: "Title and content are required" });
       }
 
-      const updatedAnnotation = await storage.updateAnnotation(id, title, content);
+      const updatedAnnotation = await storage.updateAnnotation(id, title, content, userId);
       if (!updatedAnnotation) {
-        return res.status(404).json({ message: "Annotation not found" });
+        return res.status(404).json({ message: "Annotation not found or you don't have permission to update it" });
       }
 
       res.json(updatedAnnotation);
@@ -213,16 +271,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete an annotation
-  apiRouter.delete("/annotations/:id", async (req, res) => {
+  apiRouter.delete("/annotations/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid annotation ID" });
       }
 
-      const deleted = await storage.deleteAnnotation(id);
+      // Get userId from session
+      const userId = req.session!.userId!;
+      
+      const deleted = await storage.deleteAnnotation(id, userId);
       if (!deleted) {
-        return res.status(404).json({ message: "Annotation not found" });
+        return res.status(404).json({ message: "Annotation not found or you don't have permission to delete it" });
       }
 
       res.status(204).send();
@@ -233,11 +294,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete all annotations for a photo
-  apiRouter.delete("/photos/:photoId/annotations", async (req, res) => {
+  apiRouter.delete("/photos/:photoId/annotations", requireAuth, async (req, res) => {
     try {
       const photoId = parseInt(req.params.photoId, 10);
       if (isNaN(photoId)) {
         return res.status(400).json({ message: "Invalid photo ID" });
+      }
+
+      // Get userId from session
+      const userId = req.session!.userId!;
+      
+      // Check if the user owns the photo
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+      
+      if (photo.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to delete annotations for this photo" });
       }
 
       await storage.deleteAllAnnotationsForPhoto(photoId);
