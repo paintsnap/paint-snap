@@ -59,7 +59,10 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const newUser: User = {
       id,
-      ...user,
+      firebaseUid: user.firebaseUid,
+      displayName: user.displayName || null,
+      email: user.email || null,
+      photoUrl: user.photoUrl || null,
       createdAt: now,
       lastLogin: now
     };
@@ -143,7 +146,11 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const photo: Photo = {
       id,
-      ...insertPhoto,
+      name: insertPhoto.name,
+      userId: insertPhoto.userId,
+      filename: insertPhoto.filename,
+      imageData: insertPhoto.imageData,
+      isPublic: insertPhoto.isPublic ?? false,
       uploadDate: now,
       lastModified: now
     };
@@ -286,7 +293,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
+    const now = new Date();
+    const userData = {
+      ...user,
+      // Ensure these fields are not undefined
+      displayName: user.displayName || null,
+      email: user.email || null,
+      photoUrl: user.photoUrl || null,
+      createdAt: now,
+      lastLogin: now
+    };
+    
+    const [newUser] = await db.insert(users).values(userData).returning();
     return newUser;
   }
 
@@ -380,7 +398,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPhoto(photo: InsertPhoto): Promise<Photo> {
-    const [newPhoto] = await db.insert(photos).values(photo).returning();
+    // Ensure isPublic is set to prevent type errors
+    const photoData = {
+      ...photo,
+      isPublic: photo.isPublic ?? false
+    };
+    const [newPhoto] = await db.insert(photos).values(photoData).returning();
     return newPhoto;
   }
 

@@ -24,7 +24,20 @@ router.post("/verify-token", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    const { uid, name, email, picture } = decodedToken;
+    const { uid } = decodedToken;
+    
+    // Get the user information from Firebase
+    const userRecord = await auth.getUser(uid)
+      .catch(err => {
+        console.error("Error fetching user data from Firebase:", err);
+        return null;
+      });
+      
+    if (!userRecord) {
+      return res.status(404).json({ message: "User not found in Firebase" });
+    }
+    
+    const { displayName, email, photoURL } = userRecord;
     
     // Get or create user in our database
     let user = await storage.getUserByFirebaseUid(uid);
@@ -33,9 +46,9 @@ router.post("/verify-token", async (req: Request, res: Response) => {
       // Create new user
       user = await storage.createUser({
         firebaseUid: uid,
-        displayName: name || null,
+        displayName: displayName || null,
         email: email || null,
-        photoUrl: picture || null
+        photoUrl: photoURL || null
       });
     }
     
@@ -45,10 +58,7 @@ router.post("/verify-token", async (req: Request, res: Response) => {
     // Get user profile including any additional data
     const userProfile = await storage.getUserProfile(user.id);
     
-    res.json({
-      message: "Successfully authenticated",
-      user: userProfile
-    });
+    res.json(userProfile);
   } catch (error) {
     console.error("Authentication error:", error);
     if (error instanceof z.ZodError) {
