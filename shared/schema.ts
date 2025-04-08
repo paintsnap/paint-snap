@@ -5,9 +5,12 @@ import { z } from "zod";
 // User table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  firebaseUid: text("firebase_uid").notNull().unique(),
+  // Allow both Firebase and local authentication
+  firebaseUid: text("firebase_uid").unique(),
+  username: text("username").unique(),
+  password: text("password"), // Hashed password for local authentication
   displayName: text("display_name"),
-  email: text("email"),
+  email: text("email").unique(),
   photoUrl: text("photo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login").defaultNow().notNull(),
@@ -68,7 +71,8 @@ export interface PhotoWithAnnotationsDetailed extends PhotoWithAnnotations {
 
 export interface UserProfile {
   id: number;
-  firebaseUid: string;
+  username?: string;
+  firebaseUid?: string;
   displayName: string | null;
   email: string | null;
   photoUrl: string | null;

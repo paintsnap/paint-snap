@@ -5,25 +5,32 @@ let app: admin.app.App | null = null;
 export function getFirebaseAdmin() {
   if (!app) {
     const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     
-    // Initialize the app if it hasn't been initialized yet
+    // Check if we have all required credentials
+    if (!projectId || !clientEmail || !privateKey) {
+      console.error("Missing Firebase service account credentials:", {
+        hasProjectId: !!projectId,
+        hasClientEmail: !!clientEmail,
+        hasPrivateKey: !!privateKey
+      });
+      throw new Error("Firebase service account credentials are missing");
+    }
+    
+    // Initialize the app with service account credentials
     try {
       app = admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || ''
+          clientEmail,
+          privateKey
         }),
-        projectId,
       });
+      console.log("Firebase Admin initialized successfully with service account credentials");
     } catch (error) {
-      // Fallback to using just the project ID if service account is not available
       console.error("Failed to initialize Firebase Admin with service account:", error);
-      console.log("Initializing Firebase Admin without service account credentials");
-      
-      app = admin.initializeApp({
-        projectId,
-      });
+      throw error; // Re-throw the error instead of falling back to a non-functional config
     }
   }
   

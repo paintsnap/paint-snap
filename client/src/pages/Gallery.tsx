@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,10 +17,11 @@ export default function Gallery() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("gallery");
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { user, profile, loading, signInWithGoogle, signOut, authError } = useAuth();
+  const { user, profile, loading, signOut, error: authError } = useAuth();
 
-  const { data: photos, isLoading, error } = useQuery<PhotoWithAnnotations[]>({
+  const { data: photos, isLoading, error: fetchError } = useQuery<PhotoWithAnnotations[]>({
     queryKey: ["/api/photos"],
   });
 
@@ -74,7 +75,7 @@ export default function Gallery() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsAuthModalOpen(true)} className="bg-[#2196F3] hover:bg-blue-600">
+            <Button onClick={() => setLocation("/auth")} className="bg-[#2196F3] hover:bg-blue-600">
               <LogIn className="h-5 w-5 mr-2" />
               Sign In
             </Button>
@@ -121,7 +122,7 @@ export default function Gallery() {
                 Upload a photo
               </Button>
             ) : (
-              <Button onClick={() => setIsAuthModalOpen(true)} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
+              <Button onClick={() => setLocation("/auth")} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
                 <LogIn className="h-5 w-5 mr-2" />
                 Sign in
               </Button>
@@ -149,7 +150,7 @@ export default function Gallery() {
         )}
 
         {/* Error State */}
-        {error && (
+        {fetchError && (
           <div className="text-center py-12 px-4 mt-4">
             <div className="mx-auto h-16 w-16 text-red-500 flex items-center justify-center rounded-full bg-red-100">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

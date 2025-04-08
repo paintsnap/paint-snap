@@ -9,6 +9,7 @@ import pkg from "pg";
 const { Pool } = pkg;
 import { ZodError } from "zod";
 import { handleZodError, requireAuth } from "./utils";
+import { setupAuth } from "./auth";
 
 // Add session type for TypeScript
 declare module 'express-session' {
@@ -27,21 +28,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     connectionString: process.env.DATABASE_URL
   });
 
-  // Session middleware
-  app.use(session({
-    store: new PgStore({
-      pool: sessionPool,
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || 'annotation-app-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-    },
-  }));
+  // Create the session store
+  const sessionStore = new PgStore({
+    pool: sessionPool,
+    createTableIfMissing: true,
+  });
+  
+  // Log environment variables (without revealing sensitive values)
+  console.log("SESSION_SECRET exists:", !!process.env.SESSION_SECRET);
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  
+  // Set up authentication (includes session middleware)
+  setupAuth(app, sessionStore);
 
 
 
