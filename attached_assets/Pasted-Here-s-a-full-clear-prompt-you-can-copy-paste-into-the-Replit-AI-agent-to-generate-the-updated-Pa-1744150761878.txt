@@ -1,0 +1,41 @@
+Here’s a full, clear prompt you can copy-paste into the Replit AI agent to generate the updated **PaintSnap** structure. It balances structure with flexibility so the agent knows exactly what to do:
+
+---
+
+**📝 Full Replit Agent Prompt:**
+
+> I'm building an app called **PaintSnap**. It lets users take or upload a photo of a room, surface, or object and tag features in that photo with details like the paint used.  
+> 
+> The structure is:  
+> - One fixed project called **"Your Project"**  
+> - Under that, users create **Areas** (e.g. “Living Room”, “Front of House”)  
+> - Each Area contains **Photos**  
+> - Each Photo contains **Tags**
+>
+> ### Here's how the app should work:
+> 1. On the **Home screen**, show a list of Areas. Each Area card should have a kebab menu (three dots) with options: Rename Area, Delete Area.
+> 2. Include an “Add Area” button at the top or bottom.
+> 3. When the user clicks **Add** in the bottom navigation, they should be prompted to:
+>    - Select an existing Area from a dropdown
+>    - Upload a new Photo
+>    - The photo should be saved under that Area
+> 4. When viewing an Area, show a list of Photos inside it.
+>    - Each Photo should have a kebab menu with: Rename Photo, Delete Photo, Move to another Area.
+> 5. When a Photo is tapped, open it full-screen in a Photo Viewer.
+>    - Users can tap anywhere on the image to add a Tag.
+>    - Each Tag has:
+>        - Description (short label)
+>        - Details (e.g. paint name/type)
+>        - Notes (e.g. when it was last painted)
+>        - Optional photo upload (e.g. image of the paint tin)
+>    - Tags should display as pins or small dots on the image. Tapping a pin opens a modal or sidebar with the tag details.
+> 6. Add a **Bottom Navigation bar** with three buttons:
+>    - Home: takes user to the Areas list
+>    - Add: opens the new photo upload flow (select Area + upload photo)
+>    - All: shows all Photos across all Areas (grid or list)
+>
+> I’m currently using Replit’s database and login system. Please structure the app so users only see their own data. The app only needs to support **one project** at this time ("Your Project") — multiple projects and export PDF will be for a future paid tier.
+
+---
+
+Want a follow-up version of this that asks the agent to generate the actual database schema or API endpoints next?

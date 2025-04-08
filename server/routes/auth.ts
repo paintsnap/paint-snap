@@ -8,12 +8,12 @@ import passport from 'passport';
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { ZodError } from "zod";
-import { User } from '@shared/schema';
+import { User as SchemaUser } from '@shared/schema';
 
 // Extend the Express.User interface in its own file
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User extends SchemaUser {}
   }
 }
 
