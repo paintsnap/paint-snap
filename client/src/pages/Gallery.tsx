@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadModal } from "@/components/modals/UploadModal";
+import { AuthModal } from "@/components/modals/AuthModal";
 import { PhotoWithAnnotations } from "@shared/schema";
 import { UploadCloud, Edit, ChevronRight, Camera, LogOut, LogIn, User } from "lucide-react";
 import { formatDate } from "@/lib/utils/image-utils";
@@ -14,9 +15,10 @@ import { useAuth } from "../hooks/use-auth";
 
 export default function Gallery() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("gallery");
   const { toast } = useToast();
-  const { user, profile, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, profile, loading, signInWithGoogle, signOut, authError } = useAuth();
 
   const { data: photos, isLoading, error } = useQuery<PhotoWithAnnotations[]>({
     queryKey: ["/api/photos"],
@@ -72,9 +74,9 @@ export default function Gallery() {
               </Button>
             </>
           ) : (
-            <Button onClick={signInWithGoogle} className="bg-[#2196F3] hover:bg-blue-600">
+            <Button onClick={() => setIsAuthModalOpen(true)} className="bg-[#2196F3] hover:bg-blue-600">
               <LogIn className="h-5 w-5 mr-2" />
-              Sign In with Google
+              Sign In
             </Button>
           )}
         </div>
@@ -119,9 +121,9 @@ export default function Gallery() {
                 Upload a photo
               </Button>
             ) : (
-              <Button onClick={signInWithGoogle} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
+              <Button onClick={() => setIsAuthModalOpen(true)} className="mt-5 bg-[#2196F3] hover:bg-blue-600">
                 <LogIn className="h-5 w-5 mr-2" />
-                Sign in with Google
+                Sign in
               </Button>
             )}
           </div>
@@ -277,6 +279,12 @@ export default function Gallery() {
       <UploadModal 
         isOpen={isUploadModalOpen} 
         onClose={() => setIsUploadModalOpen(false)} 
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
     </div>
   );

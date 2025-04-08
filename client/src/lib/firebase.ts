@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, EmailAuthProvider } from "firebase/auth";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -15,7 +15,10 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
+
+// Export providers
 export const googleProvider = new GoogleAuthProvider();
+export const emailProvider = new EmailAuthProvider();
 
 // Configure Google provider
 googleProvider.setCustomParameters({
