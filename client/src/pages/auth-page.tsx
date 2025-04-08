@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, LogIn, Mail, User, KeyRound, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,7 +32,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState("login");
   const [, setLocation] = useLocation();
   const { profile, isLoading, error, loginLocalUser, registerLocalUser, signInWithGoogle } = useAuth();
 
@@ -74,6 +72,8 @@ export default function AuthPage() {
     await registerLocalUser(values.username, values.email, values.password);
   };
 
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       {/* Left side - Authentication forms */}
@@ -82,36 +82,48 @@ export default function AuthPage() {
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <Camera className="h-6 w-6 text-[#2196F3]" />
-              <h2 className="text-xl font-semibold text-center">Photo Annotator</h2>
+              <h2 className="text-xl font-semibold text-center">PaintSnap</h2>
             </div>
             <CardTitle className="text-2xl font-bold">
-              {activeTab === "login" ? "Welcome back" : "Create an account"}
+              Welcome
             </CardTitle>
             <CardDescription>
-              {activeTab === "login" 
-                ? "Enter your credentials to sign in to your account"
-                : "Fill in the form below to create your account"
-              }
+              Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
+            {/* Custom Tab Navigation */}
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              <Button 
+                type="button" 
+                variant={activeTab === "login" ? "default" : "outline"} 
+                onClick={() => setActiveTab("login")}
+                className={activeTab === "login" ? "bg-[#2196F3] hover:bg-blue-600" : ""}
+              >
+                Sign In
+              </Button>
+              <Button 
+                type="button" 
+                variant={activeTab === "register" ? "default" : "outline"}
+                onClick={() => setActiveTab("register")}
+                className={activeTab === "register" ? "bg-[#2196F3] hover:bg-blue-600" : ""}
+              >
+                Register
+              </Button>
+            </div>
 
-              {/* Login Form */}
-              <TabsContent value="login" className="space-y-4">
-                {/* Error Message */}
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
+            {/* Error Message */}
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Login Form */}
+            {activeTab === "login" && (
+              <div className="space-y-4">
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <FormField
@@ -191,19 +203,12 @@ export default function AuthPage() {
                   </svg>
                   Sign in with Google
                 </Button>
-              </TabsContent>
+              </div>
+            )}
 
-              {/* Register Form */}
-              <TabsContent value="register" className="space-y-4">
-                {/* Error Message */}
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
+            {/* Register Form */}
+            {activeTab === "register" && (
+              <div className="space-y-4">
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                     <FormField
@@ -293,8 +298,8 @@ export default function AuthPage() {
                     </Button>
                   </form>
                 </Form>
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-gray-500">
@@ -308,7 +313,7 @@ export default function AuthPage() {
       <div className="hidden md:flex flex-1 p-6 bg-gradient-to-br from-blue-500 to-blue-700 text-white flex-col justify-center px-12">
         <div className="max-w-md mx-auto">
           <Camera className="h-16 w-16 mb-6" />
-          <h1 className="text-4xl font-bold mb-4">Photo Annotator</h1>
+          <h1 className="text-4xl font-bold mb-4">PaintSnap</h1>
           <p className="text-xl mb-8">
             Document your interior designs with precision annotations and detailed notes directly on your photos.
           </p>
