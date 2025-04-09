@@ -168,12 +168,17 @@ function Router() {
   );
 }
 
+// Import ProjectProvider
+import { ProjectProvider } from "./hooks/use-project";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <ProjectProvider>
+          <Router />
+          <Toaster />
+        </ProjectProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

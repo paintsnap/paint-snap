@@ -1,37 +1,36 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Camera, FolderOpenDot, Grid2X2, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaWithPhotos } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { getQueryFn } from "@/lib/queryClient";
+import { useProject } from "@/hooks/use-project";
+import { useAreas } from "@/hooks/use-firebase-data";
 
 export default function DashboardPage() {
   const { profile, isLoading: authLoading } = useAuth();
+  const { currentProject, isLoading: projectLoading } = useProject();
   const [, setLocation] = useLocation();
 
-  // Fetch areas
-  const { data: areas, isLoading: areasLoading } = useQuery<AreaWithPhotos[]>({
-    queryKey: ["/api/areas"],
-    queryFn: getQueryFn({ on401: "throw" }),
-    enabled: !!profile,
-  });
+  // Fetch areas if we have a current project
+  const { 
+    data: areas, 
+    isLoading: areasLoading 
+  } = useAreas(currentProject?.id || "");
 
   // Redirect to areas page if user has areas
   useEffect(() => {
-    if (!authLoading && !areasLoading && areas && areas.length > 0) {
+    if (!authLoading && !projectLoading && !areasLoading && areas && areas.length > 0) {
       setLocation("/areas");
     }
-  }, [authLoading, areasLoading, areas, setLocation]);
+  }, [authLoading, projectLoading, areasLoading, areas, setLocation]);
 
   // Handle navigation
   const navigateToAreas = () => setLocation("/areas");
   const navigateToUpload = () => setLocation("/upload");
   const navigateToAllPhotos = () => setLocation("/photos");
 
-  const isLoading = authLoading || areasLoading;
+  const isLoading = authLoading || projectLoading || areasLoading;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">

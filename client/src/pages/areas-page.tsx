@@ -1,8 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { AreaWithPhotos, InsertArea } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { 
@@ -42,6 +39,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+// Import Firestore hooks and functions
+import { useProject } from "@/hooks/use-project";
+import { useAreas } from "@/hooks/use-firebase-data";
+import { 
+  createArea, 
+  updateArea, 
+  deleteArea,
+  AreaWithPhotos 
+} from "@/lib/firestore";
+
 // Form schema for creating/updating an area
 const areaFormSchema = z.object({
   name: z.string().min(1, "Area name is required").max(50, "Area name is too long"),
@@ -50,152 +57,169 @@ const areaFormSchema = z.object({
 type AreaFormValues = z.infer<typeof areaFormSchema>;
 
 export default function AreasPage() {
-  console.log("AreasPage component rendering");
-  
   const { profile } = useAuth();
-  console.log("Profile in AreasPage:", profile);
-  
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Dialog states
   const [isAddAreaDialogOpen, setIsAddAreaDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState<AreaWithPhotos | null>(null);
   
-  // Form for creating a new area
+  // Operation states
+  const [isCreatingArea, setIsCreatingArea] = useState(false);
+  const [isUpdatingArea, setIsUpdatingArea] = useState(false);
+  const [isDeletingArea, setIsDeletingArea] = useState(false);
+  
+  // For refreshing data
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refreshData = () => setRefreshTrigger(prev => prev + 1);
+  
+  // Forms
   const addAreaForm = useForm<AreaFormValues>({
     resolver: zodResolver(areaFormSchema),
-    defaultValues: {
-      name: "",
-    },
+    defaultValues: { name: "" },
   });
   
-  // Form for renaming an area
   const renameAreaForm = useForm<AreaFormValues>({
     resolver: zodResolver(areaFormSchema),
-    defaultValues: {
-      name: "",
-    },
+    defaultValues: { name: "" },
   });
   
-  // Query to fetch all areas
+  // Get current project
+  const { currentProject, isLoading: projectLoading } = useProject();
+  
+  // Query to fetch all areas for the current project
   const { 
     data: areas = [], 
-    isLoading, 
+    isLoading: areasLoading, 
     error 
-  } = useQuery<AreaWithPhotos[]>({ 
-    queryKey: ["/api/areas"],
-    enabled: !!profile
-  });
+  } = useAreas(currentProject?.id || "");
   
-  // Mutation to create a new area
-  const createAreaMutation = useMutation({
-    mutationFn: async (areaData: InsertArea) => {
-      const res = await apiRequest("POST", "/api/areas", areaData);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+  // Combined loading state
+  const isLoading = projectLoading || areasLoading;
+  
+  // Create new area
+  const handleCreateArea = async (data: AreaFormValues) => {
+    if (!currentProject || !profile) {
+      toast({
+        title: "Error",
+        description: "Project or user information not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsCreatingArea(true);
+    try {
+      await createArea(currentProject.id, profile.id, data.name);
+      
       toast({
         title: "Area created",
         description: "Your new area has been created successfully.",
       });
+      
+      // Refresh data
+      refreshData();
+      
+      // Close dialog and reset form
       setIsAddAreaDialogOpen(false);
       addAreaForm.reset();
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error("Error creating area:", error);
       toast({
         title: "Failed to create area",
-        description: error.message,
+        description: (error as Error).message || "An unknown error occurred",
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsCreatingArea(false);
+    }
+  };
   
-  // Mutation to update an area
-  const updateAreaMutation = useMutation({
-    mutationFn: async ({ id, name }: { id: number; name: string }) => {
-      const res = await apiRequest("PATCH", `/api/areas/${id}`, { name });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+  // Handle rename area
+  const handleRenameSubmit = async (data: AreaFormValues) => {
+    if (!currentProject || !selectedArea) {
+      return;
+    }
+    
+    setIsUpdatingArea(true);
+    try {
+      await updateArea(currentProject.id, selectedArea.id, data.name);
+      
       toast({
         title: "Area renamed",
         description: "The area has been renamed successfully.",
       });
+      
+      // Refresh data
+      refreshData();
+      
+      // Close dialog and reset
       setIsRenameDialogOpen(false);
       setSelectedArea(null);
       renameAreaForm.reset();
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error("Error updating area:", error);
       toast({
         title: "Failed to rename area",
-        description: error.message,
+        description: (error as Error).message || "An unknown error occurred",
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsUpdatingArea(false);
+    }
+  };
   
-  // Mutation to delete an area
-  const deleteAreaMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/areas/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+  // Delete area
+  const performDeleteArea = async () => {
+    if (!currentProject || !selectedArea) {
+      return;
+    }
+    
+    setIsDeletingArea(true);
+    try {
+      await deleteArea(currentProject.id, selectedArea.id);
+      
       toast({
         title: "Area deleted",
         description: "The area and all its photos have been deleted.",
       });
+      
+      // Refresh data
+      refreshData();
+      
+      // Close dialog
       setIsDeleteDialogOpen(false);
       setSelectedArea(null);
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error("Error deleting area:", error);
       toast({
         title: "Failed to delete area",
-        description: error.message,
+        description: (error as Error).message || "An unknown error occurred",
         variant: "destructive",
       });
-    },
-  });
-  
-  // Handle creating a new area
-  const onSubmitNewArea = (values: AreaFormValues) => {
-    if (!profile) return;
-    
-    createAreaMutation.mutate({
-      name: values.name,
-      userId: profile.id,
-    });
-  };
-  
-  // Handle renaming an area
-  const onSubmitRenameArea = (values: AreaFormValues) => {
-    if (!selectedArea) return;
-    
-    updateAreaMutation.mutate({
-      id: selectedArea.id,
-      name: values.name,
-    });
+    } finally {
+      setIsDeletingArea(false);
+    }
   };
   
   // Open rename dialog for an area
-  const handleRenameArea = (area: AreaWithPhotos) => {
+  const openRenameDialog = (area: AreaWithPhotos) => {
     setSelectedArea(area);
     renameAreaForm.setValue("name", area.name);
     setIsRenameDialogOpen(true);
   };
   
   // Open delete dialog for an area
-  const handleDeleteArea = (area: AreaWithPhotos) => {
+  const openDeleteDialog = (area: AreaWithPhotos) => {
     setSelectedArea(area);
     setIsDeleteDialogOpen(true);
   };
   
   // Handle clicking an area card to navigate to area detail
-  const handleAreaClick = (areaId: number) => {
+  const handleAreaClick = (areaId: string) => {
     navigate(`/areas/${areaId}`);
   };
   
@@ -211,17 +235,22 @@ export default function AreasPage() {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load areas: {error.message}
+          Failed to load areas: {error}
         </div>
       </div>
     );
   }
   
+  // Safe check for areas
+  const areasList = areas || [];
+  
   return (
     <div className="container mx-auto p-4 pb-20">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Your Project</h1>
+          <h1 className="text-2xl font-bold">
+            {currentProject?.name || "Your Project"}
+          </h1>
           <p className="text-muted-foreground">Manage your areas</p>
         </div>
         <Button onClick={() => setIsAddAreaDialogOpen(true)}>
@@ -230,7 +259,7 @@ export default function AreasPage() {
         </Button>
       </div>
       
-      {areas.length === 0 ? (
+      {areasList.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Home className="w-12 h-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No areas yet</h3>
@@ -260,7 +289,7 @@ export default function AreasPage() {
             </div>
           </Card>
         
-          {areas.map((area) => (
+          {areasList.map((area) => (
             <Card key={area.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div 
                 className="cursor-pointer"
@@ -294,7 +323,7 @@ export default function AreasPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
-                          handleRenameArea(area);
+                          openRenameDialog(area);
                         }}>
                           Rename Area
                         </DropdownMenuItem>
@@ -302,7 +331,7 @@ export default function AreasPage() {
                           className="text-destructive focus:text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteArea(area);
+                            openDeleteDialog(area);
                           }}
                         >
                           Delete Area
@@ -327,7 +356,7 @@ export default function AreasPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...addAreaForm}>
-            <form onSubmit={addAreaForm.handleSubmit(onSubmitNewArea)} className="space-y-4">
+            <form onSubmit={addAreaForm.handleSubmit(handleCreateArea)} className="space-y-4">
               <FormField
                 control={addAreaForm.control}
                 name="name"
@@ -345,8 +374,8 @@ export default function AreasPage() {
                 <Button type="button" variant="outline" onClick={() => setIsAddAreaDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createAreaMutation.isPending}>
-                  {createAreaMutation.isPending ? (
+                <Button type="submit" disabled={isCreatingArea}>
+                  {isCreatingArea ? (
                     <>
                       <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                       Creating...
@@ -371,7 +400,7 @@ export default function AreasPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...renameAreaForm}>
-            <form onSubmit={renameAreaForm.handleSubmit(onSubmitRenameArea)} className="space-y-4">
+            <form onSubmit={renameAreaForm.handleSubmit(handleRenameSubmit)} className="space-y-4">
               <FormField
                 control={renameAreaForm.control}
                 name="name"
@@ -389,8 +418,8 @@ export default function AreasPage() {
                 <Button type="button" variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={updateAreaMutation.isPending}>
-                  {updateAreaMutation.isPending ? (
+                <Button type="submit" disabled={isUpdatingArea}>
+                  {isUpdatingArea ? (
                     <>
                       <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                       Saving...
@@ -421,10 +450,10 @@ export default function AreasPage() {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => selectedArea && deleteAreaMutation.mutate(selectedArea.id)}
-              disabled={deleteAreaMutation.isPending}
+              onClick={performDeleteArea}
+              disabled={isDeletingArea}
             >
-              {deleteAreaMutation.isPending ? (
+              {isDeletingArea ? (
                 <>
                   <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                   Deleting...

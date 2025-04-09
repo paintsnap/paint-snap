@@ -19,6 +19,7 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { UserProfile } from "@shared/schema";
 import { useToast } from "./use-toast";
+import { createDefaultProject } from "../lib/firestore";
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -175,6 +176,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp()
       });
+      
+      // Create a default project for the new user
+      try {
+        await createDefaultProject(firebaseUser);
+        console.log("Default project created for new user");
+      } catch (projectError) {
+        console.error("Error creating default project:", projectError);
+      }
       
       toast({
         title: "Success",
