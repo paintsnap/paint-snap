@@ -72,9 +72,8 @@ export default function AreasPage() {
   const [isUpdatingArea, setIsUpdatingArea] = useState(false);
   const [isDeletingArea, setIsDeletingArea] = useState(false);
   
-  // For refreshing data
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refreshData = () => setRefreshTrigger(prev => prev + 1);
+  // For refreshing data - use refetch from the hooks directly
+  const refreshData = () => refetch();
   
   // Forms
   const addAreaForm = useForm<AreaFormValues>({
@@ -94,7 +93,8 @@ export default function AreasPage() {
   const { 
     data: areas = [], 
     isLoading: areasLoading, 
-    error 
+    error,
+    refetch 
   } = useAreas(currentProject?.id || "");
   
   // Combined loading state
@@ -232,10 +232,67 @@ export default function AreasPage() {
   }
   
   if (error) {
+    const isConnectionError = 
+      error.includes('unavailable') || 
+      error.includes('network') || 
+      error.includes('connection');
+    
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load areas: {error}
+          <h2 className="text-lg font-semibold mb-2">
+            {isConnectionError ? "Connection Issue" : "Error Loading Areas"}
+          </h2>
+          <p className="mb-4">
+            {isConnectionError 
+              ? "We're having trouble connecting to the database. This might be a temporary issue." 
+              : `Failed to load areas: ${error}`}
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => refetch()}
+            className="mr-2"
+          >
+            Retry
+          </Button>
+          {isConnectionError && (
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate("/dashboard")}
+            >
+              Go to Dashboard
+            </Button>
+          )}
+        </div>
+        
+        {/* Fall back to empty state to allow creating new areas even with connection issues */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">
+                {currentProject?.name || "Your Project"}
+              </h1>
+              <p className="text-muted-foreground">Manage your areas</p>
+            </div>
+            <Button onClick={() => setIsAddAreaDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Area
+            </Button>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Home className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">No areas available</h3>
+            <p className="text-muted-foreground mb-4">
+              {isConnectionError 
+                ? "Currently unable to load your areas due to connection issues." 
+                : "Create your first area to start organizing your photos"}
+            </p>
+            <Button onClick={() => setIsAddAreaDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Area
+            </Button>
+          </div>
         </div>
       </div>
     );

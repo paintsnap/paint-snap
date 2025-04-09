@@ -24,54 +24,87 @@ function useFirebaseData<T>(
   data: T | null;
   isLoading: boolean;
   error: string | null;
+  refetch: () => void;
 } {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  // For manual refetching
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const refetch = () => {
+    setIsLoading(true);
+    setError(null);
+    setRefetchTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     let isMounted = true;
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 3; // Increased max retries
     
     const fetchData = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
-      setError(null);
+      // Don't clear error immediately to avoid flickering UI on retries
       
       try {
         const result = await fetchFn();
         if (isMounted) {
           setData(result);
+          setError(null); // Clear error on success
         }
       } catch (err) {
         console.error("Error fetching data:", err);
         
         if (isMounted) {
-          // Convert to Error type for easier access to properties
-          const error = err as Error;
-          const errorMessage = error.message || "Unknown error";
+          // Get error details, handling various error formats
+          let errorMessage = "Unknown error";
+          let errorCode = "";
           
-          // Check for connectivity issues (looking for specific error messages)
+          if (err instanceof Error) {
+            errorMessage = err.message;
+            // Try to extract code from Firebase errors
+            errorCode = (err as any).code || "";
+          } else if (typeof err === 'object' && err !== null) {
+            errorMessage = (err as any).message || "Unknown error";
+            errorCode = (err as any).code || "";
+          }
+          
+          // Check for connectivity issues (looking for specific error messages and codes)
           const isConnectivityIssue = 
             errorMessage.includes("unavailable") || 
             errorMessage.includes("network") || 
-            errorMessage.includes("connection");
+            errorMessage.includes("connection") ||
+            errorCode === "unavailable" ||
+            errorCode === "network-request-failed";
           
+          // Retry with exponential backoff for connectivity issues
           if (isConnectivityIssue && retryCount < maxRetries) {
-            // If it seems like a connectivity issue, retry
             retryCount++;
-            console.log(`Connection issue. Retrying (${retryCount}/${maxRetries})...`);
+            const backoffTime = Math.min(1000 * (2 ** retryCount), 10000); // exponential backoff with max 10s
+            console.log(`Connection issue. Retrying (${retryCount}/${maxRetries}) in ${backoffTime}ms...`);
             
-            // Wait a moment and try again
-            setTimeout(fetchData, 1500);
-            return; // Skip setting error state
+            // Show toast for first retry only
+            if (retryCount === 1) {
+              toast({
+                title: "Connection Issue",
+                description: "Having trouble connecting. Retrying...",
+                variant: "default"
+              });
+            }
+            
+            // For quick first retry
+            setTimeout(fetchData, backoffTime);
+            return; // Skip setting permanent error state
           }
           
           // Set error state
           setError(errorMessage);
           
-          // Show a toast with appropriate message
+          // Show a toast with appropriate message only on final failure
           toast({
             title: isConnectivityIssue ? "Connection Issue" : "Error",
             description: isConnectivityIssue 
@@ -95,7 +128,7 @@ function useFirebaseData<T>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependencies);
   
-  return { data, isLoading, error };
+  return { data, isLoading, error, refetch };
 }
 
 // Hook for fetching user's projects
