@@ -669,9 +669,10 @@ export async function uploadPhoto(
     // Log permissions before attempting upload
     await logFirebasePermissions();
     
-    console.log("Preparing minimal image for upload...");
+    console.log("USING FIRESTORE-ONLY UPLOAD STRATEGY (bypassing Firebase Storage)");
+    console.log("Creating tiny image for inline Firestore storage...");
     
-    // Create a smaller image for more reliable upload
+    // Create a much smaller image for embedding directly in Firestore
     const img = document.createElement('img');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -679,21 +680,21 @@ export async function uploadPhoto(
     // Set up a promise to load the image
     await new Promise<void>((resolve, reject) => {
       img.onload = () => {
-        // Scale the image down to a reasonable size
-        const MAX_DIMENSION = 600;
+        // Scale the image down to a very small size for Firestore
+        const MAX_DIMENSION = 400; // Small enough to fit in Firestore document
         let width = img.width;
         let height = img.height;
         
-        if (width > height) {
-          if (width > MAX_DIMENSION) {
-            height = Math.round((height * MAX_DIMENSION) / width);
-            width = MAX_DIMENSION;
-          }
+        const aspectRatio = width / height;
+        
+        if (aspectRatio > 1) {
+          // Landscape image
+          width = MAX_DIMENSION;
+          height = Math.round(MAX_DIMENSION / aspectRatio);
         } else {
-          if (height > MAX_DIMENSION) {
-            width = Math.round((width * MAX_DIMENSION) / height);
-            height = MAX_DIMENSION;
-          }
+          // Portrait or square image
+          height = MAX_DIMENSION;
+          width = Math.round(MAX_DIMENSION * aspectRatio);
         }
         
         // Set canvas size and draw image
@@ -708,178 +709,60 @@ export async function uploadPhoto(
       img.src = URL.createObjectURL(file);
     });
     
-    // Convert canvas to blob (jpeg) with very low quality
-    const optimizedBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/jpeg', 0.3); // 30% quality
+    // Convert the canvas to a base64 data URL string (JPEG at very low quality)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.1); // 10% quality
+    
+    // Calculate size of the data URL
+    const dataUrlSize = dataUrl.length;
+    console.log("Generated base64 data URL size:", {
+      originalSize: file.size,
+      dataUrlSize: dataUrlSize,
+      reduction: `${Math.round((1 - dataUrlSize / file.size) * 100)}%`
     });
     
-    if (!optimizedBlob) {
-      throw new Error("Failed to create optimized image for upload");
-    }
+    // Use a fake storage path and URL for compatibility with existing code
+    const fileName = `direct_${Date.now()}.jpg`;
+    const storagePath = `direct/${fileName}`;
     
-    console.log("Image optimized for upload:", { 
-      originalSize: file.size, 
-      optimizedSize: optimizedBlob.size,
-      reduction: `${Math.round((1 - optimizedBlob.size / file.size) * 100)}%` 
-    });
+    console.log("Storing image directly in Firestore (bypassing Storage)");
     
-    // Generate a simple filename with no special chars
-    const fileName = `photo_${Date.now()}.jpg`;
-    const storagePath = `photos/${fileName}`;  // Simplified path structure
-    console.log("Using simplified storage path:", storagePath);
-    
-    // Get storage reference with the simplified path
-    const storageRef = ref(storage, storagePath);
-    console.log("Storage reference created for path:", storagePath);
+    // The image data URL will be used as the imageUrl
+    // No Storage interactions needed
+    const imageUrl = dataUrl;
     
     try {
-      // Simple direct upload attempt with minimal metadata
-      console.log("Starting direct upload attempt...");
-      const metadata = {
-        contentType: 'image/jpeg'
+      // Create photo document in Firestore directly
+      const photosRef = getPhotosRef(projectId);
+      const now = serverTimestamp();
+      const photoDoc = {
+        name: name || file.name,
+        areaId,
+        projectId,
+        userId,
+        imageUrl,  // This contains the base64 data URL of the image
+        storagePath, // Just for compatibility with existing code
+        uploadDate: now,
+        lastModified: now,
+        // Add flag to indicate this is a base64 embedded image (for future compatibility)
+        isEmbedded: true
       };
       
-      // Upload the file to Firebase Storage directly
-      console.log("About to upload file to Firebase Storage directly...");
-      let uploadTask;
+      console.log("Creating Firestore document...");
+      const newPhotoRef = doc(photosRef);
+      await setDoc(newPhotoRef, photoDoc);
+      console.log("Firestore document created with ID:", newPhotoRef.id);
       
-      try {
-        // Set a timeout to detect stalled uploads
-        const uploadTimeout = setTimeout(() => {
-          console.error("UPLOAD TIMEOUT: Upload operation exceeded maximum time limit");
-        }, 15000); // 15 seconds timeout
-        
-        // Log detailed file information
-        console.log("File size:", optimizedBlob.size, "bytes");
-        console.log("File type: image/jpeg");
-        
-        // Load Firebase storage with reduced timeout
-        console.log("Setting custom maxOperationRetryTime for Firebase upload");
-        const firebaseStorage = await import('firebase/storage');
-        (firebaseStorage as any)._DEFAULT_MAX_OPERATION_RETRY_TIME = 5000; // 5 seconds max retry
-        
-        console.log("ATTEMPTING UPLOAD...");
-        
-        // Try with a simple fetch for upload (using a public bucket if possible)
-        try {
-          // Try direct upload with optimized blob (not original file)
-          uploadTask = await uploadBytes(storageRef, optimizedBlob, metadata);
-          console.log("Upload completed successfully via uploadBytes with optimized blob:", uploadTask);
-        } catch (directError) {
-          console.error("Direct upload failed:", directError);
-          
-          // Try creating a temporary canvas to reduce the image size
-          console.log("Attempting fallback with reduced image size");
-          const img = new Image();
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Create a promise to load the image
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              // Reduce the image size
-              const maxSize = 800;
-              let width = img.width;
-              let height = img.height;
-              
-              if (width > maxSize) {
-                height = Math.round((height * maxSize) / width);
-                width = maxSize;
-              }
-              
-              if (height > maxSize) {
-                width = Math.round((width * maxSize) / height);
-                height = maxSize;
-              }
-              
-              canvas.width = width;
-              canvas.height = height;
-              
-              // Draw the image to canvas
-              ctx?.drawImage(img, 0, 0, width, height);
-              resolve();
-            };
-            img.onerror = reject;
-            
-            // Create a blob URL from the file
-            img.src = URL.createObjectURL(file);
-          });
-          
-          // Convert canvas to blob with lower quality
-          const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob(resolve, 'image/jpeg', 0.5);
-          });
-          
-          if (!blob) {
-            throw new Error("Failed to create blob from image canvas");
-          }
-          
-          console.log("Created reduced image:", { size: blob.size });
-          
-          // Try upload again with reduced image
-          uploadTask = await uploadBytes(storageRef, blob, {
-            ...metadata,
-            contentType: 'image/jpeg'
-          });
-          console.log("Upload completed successfully with reduced image");
-        }
-        
-        clearTimeout(uploadTimeout);
-      } catch (error: any) {
-        console.error("STORAGE UPLOAD ERROR:", error);
-        try {
-          console.error("Detailed error:", JSON.stringify(error, null, 2));
-        } catch (e) {
-          console.error("Could not stringify error", error);
-        }
-        throw new Error(`Firebase Storage error during direct upload: ${error.message || String(error)}`);
-      }
+      // Return the ID of the newly created photo
+      return newPhotoRef.id;
+    } catch (firestoreError: any) {
+      console.error("Error writing to Firestore:", firestoreError);
       
-      // Get the download URL with better error handling
-      console.log("Attempting to get download URL...");
-      let imageUrl;
-      try {
-        imageUrl = await getDownloadURL(storageRef);
-        console.log("Download URL obtained:", imageUrl);
-      } catch (error: any) {
-        console.error("DOWNLOAD URL ERROR:", error);
-        throw new Error(`Error getting download URL: ${error.message || String(error)}`);
-      }
-      
-      // Current time for default values if serverTimestamp fails
-      const timestamp = new Date().toISOString();
-      
-      try {
-        // Create photo document in Firestore
-        const photosRef = getPhotosRef(projectId);
-        const now = serverTimestamp();
-        const photoDoc = {
-          name: name || file.name,
-          areaId,
-          projectId,
-          userId,
-          imageUrl,
-          storagePath,
-          uploadDate: now,
-          lastModified: now
-        };
+      if (firestoreError.code === 'permission-denied') {
+        // Generate a local ID since we can't get one from Firestore
+        const localId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
         
-        console.log("Creating Firestore document...");
-        const newPhotoRef = doc(photosRef);
-        await setDoc(newPhotoRef, photoDoc);
-        console.log("Firestore document created with ID:", newPhotoRef.id);
-        
-        // Return the ID of the newly created photo
-        return newPhotoRef.id;
-      } catch (firestoreError: any) {
-        console.error("Error writing to Firestore:", firestoreError);
-        
-        if (firestoreError.code === 'permission-denied') {
-          // Generate a local ID since we can't get one from Firestore
-          const localId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-          
-          console.warn("Firestore permission denied. Using local workaround with ID:", localId);
-          console.error(`
+        console.warn("Firestore permission denied. Using local workaround with ID:", localId);
+        console.error(`
 IMPORTANT: Your Firebase Firestore security rules need to be updated!
 Current rules are preventing writing to the 'projects/${projectId}/photos' collection.
 
@@ -892,53 +775,15 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
-    
-    // More specific rules if needed:
-    // match /users/{userId} {
-    //   allow read, write: if request.auth != null && request.auth.uid == userId;
-    // }
-    // 
-    // match /projects/{projectId} {
-    //   allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    //   allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-    //   
-    //   match /{collection}/{docId} {
-    //     allow read, write: if request.auth != null;
-    //   }
-    // }
-  }
-}
-          `);
-          
-          // Image was uploaded successfully even though we couldn't record it in Firestore
-          // Throw an error with photoId to let the client know about the partial success
-          const firestoreError = new Error("Failed to save photo metadata to database. Image was uploaded but database record could not be created.");
-          (firestoreError as any).code = 'permission-denied';
-          (firestoreError as any).photoId = localId;
-          (firestoreError as any).imageUrl = imageUrl;
-          throw firestoreError;
-        }
-        
-        throw firestoreError;
-      }
-    } catch (storageError: any) {
-      console.error("Firebase Storage error:", storageError);
-      if (storageError.code === 'storage/unauthorized') {
-        console.error("FIREBASE STORAGE PERMISSION DENIED - Please check your Firebase Storage rules");
-        console.error("Suggested Storage Rules:");
-        console.error(`
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // Allow authenticated users to read and write all storage files
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
   }
 }
         `);
+        
+        // We didn't use storage, so nothing was uploaded successfully
+        throw firestoreError;
       }
-      throw storageError;
+      
+      throw firestoreError;
     }
   } catch (error: any) {
     console.error("Error uploading photo:", error);
