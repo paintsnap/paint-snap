@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Camera, Palette, Home, Pin } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+// Import background image
+import backgroundImage from "@assets/background-room.jpg";
 
 export default function LandingPage() {
   const [, navigate] = useLocation();
@@ -18,21 +20,23 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b bg-background">
+      <header className="absolute top-0 left-0 right-0 z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">PaintSnap</span>
+            <Camera className="h-6 w-6 text-white" />
+            <span className="font-bold text-lg text-white">PaintSnap</span>
           </div>
           <div className="flex gap-4">
             <Button 
               variant="ghost"
               onClick={() => navigate("/auth")}
+              className="text-white hover:bg-white/10"
             >
               Log in
             </Button>
             <Button
               onClick={() => navigate("/auth?tab=register")}
+              className="bg-primary hover:bg-primary/90"
             >
               Sign up
             </Button>
@@ -41,13 +45,23 @@ export default function LandingPage() {
       </header>
       
       {/* Hero Section */}
-      <section className="py-12 md:py-20 bg-gradient-to-b from-primary/10 to-background">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center gap-8">
-          <div className="flex-1 space-y-6">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+      <section className="relative py-32 md:py-48 overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={backgroundImage} 
+            alt="Room interior with blue walls and leather sofa" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30"></div> {/* Dark overlay for better text visibility */}
+        </div>
+        
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="max-w-2xl space-y-6 text-white">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight drop-shadow-md">
               Never forget your paint colours again.
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-white/90">
               PaintSnap keeps a visual record of every wall, finish and detail — so you don't have to.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -61,18 +75,12 @@ export default function LandingPage() {
               <Button 
                 variant="outline" 
                 size="lg"
+                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20"
                 onClick={() => navigate("/auth")}
               >
                 Log in
               </Button>
             </div>
-          </div>
-          <div className="flex-1 rounded-lg overflow-hidden shadow-xl">
-            <img 
-              src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1030&q=80" 
-              alt="Interior design" 
-              className="w-full h-auto"
-            />
           </div>
         </div>
       </section>
