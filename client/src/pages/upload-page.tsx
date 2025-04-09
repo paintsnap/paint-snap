@@ -108,12 +108,27 @@ export default function UploadPage() {
   
   // Handle form submission with Firebase
   const onSubmit = async (values: UploadFormValues) => {
-    if (!user || !profile || !projectId) return;
+    if (!user || !profile || !projectId) {
+      toast({
+        title: "Upload error",
+        description: "Missing user or project information. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsUploading(true);
     try {
       const photoFile = values.imageFile;
-      const areaId = values.areaId;
+      const areaId = values.areaId || preSelectedAreaId;
+      
+      console.log("Starting photo upload with:", {
+        projectId,
+        userId: user.uid,
+        areaId,
+        fileType: photoFile.type,
+        fileSize: photoFile.size
+      });
       
       // Upload using Firebase Storage and Firestore
       const photoId = await uploadPhoto(projectId, {
@@ -123,17 +138,25 @@ export default function UploadPage() {
         file: photoFile
       });
       
+      console.log("Upload successful, photo ID:", photoId);
+      
       toast({
         title: "Photo uploaded",
         description: "Your photo has been uploaded successfully.",
       });
       
-      // Navigate to the photo view
-      navigate(`/photos/${photoId}`);
+      // Navigate back to the area detail page
+      if (preSelectedAreaId) {
+        navigate(`/areas/${preSelectedAreaId}`);
+      } else {
+        navigate(`/photos/${photoId}`);
+      }
     } catch (error: any) {
+      console.error("Photo upload error:", error);
+      
       toast({
         title: "Failed to upload photo",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -281,6 +304,16 @@ export default function UploadPage() {
                     </FormItem>
                   )}
                 />
+              )}
+              
+              {/* Display selected area name when using pre-selected area */}
+              {preSelectedAreaId && (
+                <div className="p-2 bg-muted rounded-md">
+                  <p className="text-sm font-medium mb-1">Selected Area</p>
+                  <p className="text-sm text-muted-foreground">
+                    {safeAreas.find((area: AreaType) => area.id === preSelectedAreaId)?.name || "Area"}
+                  </p>
+                </div>
               )}
               
               {/* No Photo Name field required */}

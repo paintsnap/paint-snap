@@ -661,22 +661,35 @@ export async function uploadPhoto(
   const { userId, areaId, name, file } = photoData;
   
   try {
-    // Resize image before upload
-    const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
+    console.log("Starting upload process for:", {
+      projectId, userId, areaId, fileName: file.name, fileSize: file.size
+    });
+    
+    // Skip image resizing for now to troubleshoot upload issues
+    // const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
     
     // Generate a unique filename
-    const fileName = `${Date.now()}_${file.name}`;
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     const storagePath = `users/${userId}/projects/${projectId}/photos/${fileName}`;
-    const storageRef = ref(storage, storagePath);
+    console.log("Storage path:", storagePath);
     
-    // Upload to Firebase Storage
-    await uploadBytes(storageRef, resizedImage);
+    // Get storage reference
+    const storageRef = ref(storage, storagePath);
+    console.log("Storage reference created");
+    
+    // Upload directly without resizing for troubleshooting
+    console.log("Starting upload...");
+    const uploadTask = await uploadBytes(storageRef, file);
+    console.log("Upload completed successfully:", uploadTask);
+    
+    // Get the download URL
     const imageUrl = await getDownloadURL(storageRef);
+    console.log("Download URL obtained:", imageUrl);
     
     // Create photo document in Firestore
     const photosRef = getPhotosRef(projectId);
     const now = serverTimestamp();
-    const photoData = {
+    const photoDoc = {
       name: name || file.name,
       areaId,
       projectId,
@@ -687,14 +700,16 @@ export async function uploadPhoto(
       lastModified: now
     };
     
+    console.log("Creating Firestore document...");
     const newPhotoRef = doc(photosRef);
-    await setDoc(newPhotoRef, photoData);
+    await setDoc(newPhotoRef, photoDoc);
+    console.log("Firestore document created with ID:", newPhotoRef.id);
     
     // Return the ID of the newly created photo
     return newPhotoRef.id;
   } catch (error) {
     console.error("Error uploading photo:", error);
-    throw new Error("Failed to upload photo. Please try again.");
+    throw new Error(`Failed to upload photo: ${error.message || "Unknown error"}`);
   }
 }
 
