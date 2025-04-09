@@ -47,16 +47,26 @@ export default function UploadPage() {
   const { currentProject } = useProject();
   const projectId = currentProject?.id || '';
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Check URL for areaId parameter directly from window.location
+  // Check URL for areaId parameter using both methods to ensure we capture it
+  // Method 1: From current location state using URLSearchParams
   const urlParams = new URLSearchParams(window.location.search);
-  const preSelectedAreaId = urlParams.get('areaId') || '';
+  const areaIdFromUrl = urlParams.get('areaId') || '';
   
-  console.log("Upload page - preselected area ID (from window.location):", preSelectedAreaId, "URL:", window.location.href);
+  // Method 2: Parse from the current location path - for /areas/:areaId/upload patterns
+  const pathMatch = location.match(/\/areas\/([^\/]+)\/upload/);
+  const areaIdFromPath = pathMatch ? pathMatch[1] : '';
+  
+  // Use whichever method found an areaId
+  const preSelectedAreaId = areaIdFromUrl || areaIdFromPath || '';
+  
+  console.log("Upload page - preselected area ID:", preSelectedAreaId, 
+              "URL:", window.location.href, 
+              "Location:", location);
   
   // Get previous page to return to
   const goBack = () => {

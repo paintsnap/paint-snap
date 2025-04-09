@@ -154,6 +154,13 @@ function Router() {
           </AppLayout>
         );
       }} />
+      <ProtectedRoute path="/areas/:id/upload" component={() => {
+        return (
+          <AppLayout>
+            <UploadPage />
+          </AppLayout>
+        );
+      }} />
       <ProtectedRoute path="/photos/:id" component={() => {
         return (
           <AppLayout>

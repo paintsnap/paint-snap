@@ -216,8 +216,9 @@ export default function AreaDetailPage() {
         <Button 
           onClick={() => {
             // Navigate to upload page with pre-selected area
+            // Use the /areas/:areaId/upload pattern for clearer routing
             console.log("Navigating to upload with areaId:", areaId);
-            navigate(`/upload?areaId=${areaId}`);
+            navigate(`/areas/${areaId}/upload`);
           }}
         >
           Add Photo
@@ -234,7 +235,7 @@ export default function AreaDetailPage() {
           <Button 
             onClick={() => {
               console.log("Navigating to upload with areaId from empty state:", areaId);
-              navigate(`/upload?areaId=${areaId}`);
+              navigate(`/areas/${areaId}/upload`);
             }}
             variant="outline"
             size="lg"

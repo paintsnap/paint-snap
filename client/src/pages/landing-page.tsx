@@ -45,10 +45,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1 space-y-6">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              Document Your Interior Designs with Precision
+              Never forget your paint colours again.
             </h1>
             <p className="text-lg text-muted-foreground">
-              PaintSnap helps you keep track of paint colors, materials, and design elements with precise photo annotations and organized areas.
+              PaintSnap keeps a visual record of every wall, finish and detail — so you don't have to.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
@@ -77,42 +77,48 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Features Section */}
+      {/* Lead Copy Section */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Simplify Your Design Documentation</h2>
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <p className="text-lg leading-relaxed text-muted-foreground">
+              Whether you own one home or manage dozens, PaintSnap makes it effortless to track what's been painted, where, and with what. No more scraps of paper. No more guesswork. Just snap, tag, and get on with your day.
+            </p>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-center mb-12">Who it's for</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-card p-6 rounded-lg border shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
-                <Pin className="text-primary h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Precise Annotations</h3>
-              <p className="text-muted-foreground">
-                Mark specific spots on your photos and add detailed notes about paint colors, materials, and measurements.
-              </p>
-            </div>
-            
-            {/* Feature 2 */}
+            {/* For Homeowners */}
             <div className="bg-card p-6 rounded-lg border shadow-sm">
               <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
                 <Home className="text-primary h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Organized by Areas</h3>
+              <h3 className="text-xl font-bold mb-2">For Homeowners</h3>
               <p className="text-muted-foreground">
-                Group your photos by rooms or areas to keep everything organized and easy to find when you need it.
+                Make it easy to love your space — and keep it looking great. PaintSnap helps you remember the details so you can focus on the big picture.
               </p>
             </div>
             
-            {/* Feature 3 */}
+            {/* For Landlords */}
             <div className="bg-card p-6 rounded-lg border shadow-sm">
               <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
                 <Palette className="text-primary h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Design Details</h3>
+              <h3 className="text-xl font-bold mb-2">For Landlords & Property Managers</h3>
               <p className="text-muted-foreground">
-                Store important details like paint codes, fabric types, and vendor information all in one place.
+                Quickly reference colours, finishes and maintenance history across every property you manage — from one simple dashboard.
+              </p>
+            </div>
+            
+            {/* For Professionals */}
+            <div className="bg-card p-6 rounded-lg border shadow-sm">
+              <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
+                <Pin className="text-primary h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">For Professional Decorators</h3>
+              <p className="text-muted-foreground">
+                Deliver a better service. Keep a visual log of every job, and give clients peace of mind for future touch-ups or redecorations.
               </p>
             </div>
           </div>
@@ -130,9 +136,9 @@ export default function LandingPage() {
               <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
                 1
               </div>
-              <h3 className="text-xl font-bold mb-2">Upload Photos</h3>
+              <h3 className="text-xl font-bold mb-2">Snap a photo</h3>
               <p className="text-muted-foreground">
-                Take photos of your rooms or spaces and upload them to your project.
+                Take a quick pic of the painted surface — it can be the wall, the tin, or the finish.
               </p>
             </div>
             
@@ -141,9 +147,9 @@ export default function LandingPage() {
               <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
                 2
               </div>
-              <h3 className="text-xl font-bold mb-2">Add Annotations</h3>
+              <h3 className="text-xl font-bold mb-2">Tag the paint</h3>
               <p className="text-muted-foreground">
-                Mark specific points on your photos and add detailed notes about each element.
+                Add the colour, type and finish. Include notes like "needs retouching in 2 years" or "last painted in June 2024".
               </p>
             </div>
             
@@ -152,10 +158,32 @@ export default function LandingPage() {
               <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
                 3
               </div>
-              <h3 className="text-xl font-bold mb-2">Access Anywhere</h3>
+              <h3 className="text-xl font-bold mb-2">Done.</h3>
               <p className="text-muted-foreground">
-                Retrieve your design information whenever you need it, from any device.
+                Everything's stored by Area (e.g. Living Room, Front of House) so it's easy to find later. No mess, no stress.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Why People Love It */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Why people love it</h2>
+          
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="text-primary mt-1">✅</div>
+              <p className="text-lg">Super simple — takes seconds to use</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-primary mt-1">✅</div>
+              <p className="text-lg">Visual, not fiddly — no clunky spreadsheets</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-primary mt-1">✅</div>
+              <p className="text-lg">All in one place — no more digging through emails and notes</p>
             </div>
           </div>
         </div>
@@ -164,9 +192,10 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Document Your Designs?</h2>
+          <h2 className="text-3xl font-bold mb-6">Forget the guesswork. Keep the look.</h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Join PaintSnap today and start creating organized, detailed documentation for your interior design projects.
+            PaintSnap is the easiest way to stay in control of your home's finish — or your client's.
+            Sign up and start using it now — it's completely free to try.
           </p>
           <Button 
             size="lg" 
