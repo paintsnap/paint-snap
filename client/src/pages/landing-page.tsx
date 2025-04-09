@@ -23,7 +23,7 @@ export default function LandingPage() {
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-white" />
+            <Camera className="h-6 w-6 text-[var(--color-accent)]" />
             <span className="font-bold text-lg text-white">PaintSnap</span>
           </div>
           <div className="flex gap-4">
@@ -36,7 +36,7 @@ export default function LandingPage() {
             </Button>
             <Button
               onClick={() => navigate("/auth?tab=register")}
-              className="bg-primary hover:bg-primary/90"
+              className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90"
             >
               Sign up
             </Button>
@@ -67,7 +67,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
                 size="lg" 
-                className="px-8"
+                className="px-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90"
                 onClick={() => navigate("/auth?tab=register")}
               >
                 Start For Free
@@ -98,9 +98,9 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* For Homeowners */}
-            <div className="bg-card p-6 rounded-lg border shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
-                <Home className="text-primary h-6 w-6" />
+            <div className="bg-card p-6 rounded-lg border border-[var(--color-accent)]/20 shadow-sm hover:border-[var(--color-accent)]/50 hover:shadow-md transition-all">
+              <div className="rounded-full bg-[var(--color-accent)]/20 p-3 w-12 h-12 flex items-center justify-center mb-4">
+                <Home className="text-[var(--color-accent)] h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold mb-2">For Homeowners</h3>
               <p className="text-muted-foreground">
@@ -109,9 +109,9 @@ export default function LandingPage() {
             </div>
             
             {/* For Landlords */}
-            <div className="bg-card p-6 rounded-lg border shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
-                <Palette className="text-primary h-6 w-6" />
+            <div className="bg-card p-6 rounded-lg border border-[var(--color-accent)]/20 shadow-sm hover:border-[var(--color-accent)]/50 hover:shadow-md transition-all">
+              <div className="rounded-full bg-[var(--color-accent)]/20 p-3 w-12 h-12 flex items-center justify-center mb-4">
+                <Palette className="text-[var(--color-accent)] h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold mb-2">For Landlords & Property Managers</h3>
               <p className="text-muted-foreground">
@@ -120,9 +120,9 @@ export default function LandingPage() {
             </div>
             
             {/* For Professionals */}
-            <div className="bg-card p-6 rounded-lg border shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 w-12 h-12 flex items-center justify-center mb-4">
-                <Pin className="text-primary h-6 w-6" />
+            <div className="bg-card p-6 rounded-lg border border-[var(--color-accent)]/20 shadow-sm hover:border-[var(--color-accent)]/50 hover:shadow-md transition-all">
+              <div className="rounded-full bg-[var(--color-accent)]/20 p-3 w-12 h-12 flex items-center justify-center mb-4">
+                <Pin className="text-[var(--color-accent)] h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold mb-2">For Professional Decorators</h3>
               <p className="text-muted-foreground">
@@ -141,7 +141,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {/* Step 1 */}
             <div className="flex flex-col items-center text-center">
-              <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
+              <div className="rounded-full bg-[var(--color-accent)] text-white w-10 h-10 flex items-center justify-center mb-4 shadow-sm">
                 1
               </div>
               <h3 className="text-xl font-bold mb-2">Snap a photo</h3>
@@ -152,7 +152,7 @@ export default function LandingPage() {
             
             {/* Step 2 */}
             <div className="flex flex-col items-center text-center">
-              <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
+              <div className="rounded-full bg-[var(--color-accent)] text-white w-10 h-10 flex items-center justify-center mb-4 shadow-sm">
                 2
               </div>
               <h3 className="text-xl font-bold mb-2">Tag the paint</h3>
@@ -163,7 +163,7 @@ export default function LandingPage() {
             
             {/* Step 3 */}
             <div className="flex flex-col items-center text-center">
-              <div className="rounded-full bg-primary text-primary-foreground w-10 h-10 flex items-center justify-center mb-4">
+              <div className="rounded-full bg-[var(--color-accent)] text-white w-10 h-10 flex items-center justify-center mb-4 shadow-sm">
                 3
               </div>
               <h3 className="text-xl font-bold mb-2">Done.</h3>
@@ -182,15 +182,15 @@ export default function LandingPage() {
           
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex items-start gap-3">
-              <div className="text-primary mt-1">✅</div>
+              <div className="text-[var(--color-accent)] mt-1 text-xl">✓</div>
               <p className="text-lg">Super simple — takes seconds to use</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="text-primary mt-1">✅</div>
+              <div className="text-[var(--color-accent)] mt-1 text-xl">✓</div>
               <p className="text-lg">Visual, not fiddly — no clunky spreadsheets</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="text-primary mt-1">✅</div>
+              <div className="text-[var(--color-accent)] mt-1 text-xl">✓</div>
               <p className="text-lg">All in one place — no more digging through emails and notes</p>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function LandingPage() {
           <Button 
             size="lg" 
             variant="secondary"
-            className="px-8"
+            className="px-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90 text-white"
             onClick={() => navigate("/auth?tab=register")}
           >
             Get Started Now
@@ -221,7 +221,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <Camera className="h-5 w-5 text-primary" />
+              <Camera className="h-5 w-5 text-[var(--color-accent)]" />
               <span className="font-bold">PaintSnap</span>
             </div>
             <div className="text-sm text-muted-foreground">
