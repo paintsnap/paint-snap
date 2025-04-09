@@ -27,6 +27,7 @@ import {
 } from "firebase/storage";
 import { db, storage, resizeImage } from "./firebase";
 import { User } from "firebase/auth";
+import { createAreaInLocalStorage } from './fallback-client';
 
 // Collection names
 const COLLECTIONS = {
@@ -292,26 +293,41 @@ export async function getArea(projectId: string, areaId: string): Promise<Area |
   return convertDoc<Area>(areaDoc);
 }
 
+// Using createAreaInLocalStorage from import at the top of the file
+
 export async function createArea(projectId: string, userId: string, name: string): Promise<Area> {
-  const areasRef = getAreasRef(projectId);
-  const now = serverTimestamp();
-  const areaData = {
-    name,
-    projectId,
-    userId,
-    createdAt: now,
-    updatedAt: now
-  };
-  
-  const newAreaRef = doc(areasRef);
-  await setDoc(newAreaRef, areaData);
-  
-  return {
-    id: newAreaRef.id,
-    ...areaData,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  };
+  try {
+    const areasRef = getAreasRef(projectId);
+    const now = serverTimestamp();
+    const areaData = {
+      name,
+      projectId,
+      userId,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const newAreaRef = doc(areasRef);
+    await setDoc(newAreaRef, areaData);
+    
+    return {
+      id: newAreaRef.id,
+      ...areaData,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+  } catch (error) {
+    console.error("Error creating area in Firestore:", error);
+    
+    // If Firestore is unavailable, use local storage fallback
+    const firebaseError = error as any;
+    if (firebaseError.code === 'unavailable' || firebaseError.code === 'permission-denied') {
+      console.log("Firestore unavailable, using local storage fallback");
+      return await createAreaInLocalStorage(name, userId, projectId);
+    }
+    
+    throw error;
+  }
 }
 
 export async function updateArea(projectId: string, areaId: string, name: string): Promise<void> {

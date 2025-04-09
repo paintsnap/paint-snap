@@ -38,6 +38,9 @@ function useFirebaseData<T>(
     setError(null);
     setRefetchTrigger(prev => prev + 1);
   };
+  
+  // Track number of retries
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
