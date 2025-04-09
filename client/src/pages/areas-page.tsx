@@ -94,8 +94,7 @@ export default function AreasPage() {
     data: areas = [], 
     isLoading: areasLoading, 
     error,
-    refetch,
-    isUsingFallback 
+    refetch
   } = useAreas(currentProject?.id || "");
   
   // Combined loading state
@@ -318,15 +317,9 @@ export default function AreasPage() {
             <h1 className="text-2xl font-bold">
               {currentProject?.name || "Your Project"}
             </h1>
-            {isUsingFallback && (
-              <div className="ml-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full flex items-center">
-                <span className="mr-1">Local Mode</span>
-                <CloudOff className="h-3 w-3" />
-              </div>
-            )}
           </div>
           <p className="text-muted-foreground">
-            {isUsingFallback ? "Using local database (Firebase unavailable)" : "Manage your areas"}
+            Manage your areas
           </p>
         </div>
         <Button onClick={() => setIsAddAreaDialogOpen(true)}>
