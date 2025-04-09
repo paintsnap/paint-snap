@@ -1,10 +1,19 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Camera, Check, Palette, Home, Pin, FileText } from "lucide-react";
+import { Camera, Palette, Home, Pin } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LandingPage() {
   const [, navigate] = useLocation();
+  const { profile, isLoading } = useAuth();
+  
+  // Redirect to dashboard if user is already logged in
+  useEffect(() => {
+    if (profile && !isLoading) {
+      navigate("/dashboard");
+    }
+  }, [profile, isLoading, navigate]);
   
   return (
     <div className="min-h-screen flex flex-col">
