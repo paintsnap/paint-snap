@@ -17,6 +17,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Debug Firebase configuration during initialization
+console.log("Firebase configuration:", {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "Set" : "Missing",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID ? "Set" : "Missing",
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 

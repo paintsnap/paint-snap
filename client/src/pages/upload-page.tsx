@@ -165,11 +165,43 @@ export default function UploadPage() {
     } catch (error: any) {
       console.error("Photo upload error:", error);
       
+      // Customize the error message based on the error type
+      let errorTitle = "Failed to upload photo";
+      let errorDescription = error.message || "An unexpected error occurred";
+      
+      // Check for specific Firebase error codes
+      if (error.code === 'storage/unauthorized') {
+        errorTitle = "Storage permission denied";
+        errorDescription = "Your account doesn't have permission to upload files. Please contact the administrator to update Firebase Storage rules.";
+      } else if (error.code === 'permission-denied') {
+        errorTitle = "Database permission denied";
+        errorDescription = "Your account doesn't have permission to write to the database. Please contact the administrator to update Firestore rules.";
+      } else if (error.message && error.message.includes("Firebase Storage")) {
+        errorTitle = "Storage error";
+        errorDescription = "There was an issue with Firebase Storage. Please try again later or contact support.";
+      } else if (error.message && error.message.includes("Firestore")) {
+        errorTitle = "Database error";
+        errorDescription = "There was an issue with the database. Please try again later or contact support.";
+      } else if (error.message && error.message.includes("network")) {
+        errorTitle = "Network error";
+        errorDescription = "Please check your internet connection and try again.";
+      }
+      
       toast({
-        title: "Failed to upload photo",
-        description: error.message || "An unexpected error occurred",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
+      
+      // If it's a local error with a photoId (partial success with storage but Firestore issue)
+      if (error.photoId) {
+        console.log("Partial upload success: image was saved but database entry failed");
+        
+        // Optionally navigate back despite error
+        if (preSelectedAreaId && confirm("Image uploaded but not saved in database. Return to area?")) {
+          navigate(`/areas/${preSelectedAreaId}`);
+        }
+      }
     } finally {
       setIsUploading(false);
     }

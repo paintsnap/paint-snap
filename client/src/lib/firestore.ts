@@ -692,6 +692,7 @@ export async function uploadPhoto(
         }
       };
       
+      // Upload the file to Firebase Storage
       const uploadTask = await uploadBytes(storageRef, file, metadata);
       console.log("Upload completed successfully:", uploadTask);
       
@@ -699,27 +700,77 @@ export async function uploadPhoto(
       const imageUrl = await getDownloadURL(storageRef);
       console.log("Download URL obtained:", imageUrl);
       
-      // Create photo document in Firestore
-      const photosRef = getPhotosRef(projectId);
-      const now = serverTimestamp();
-      const photoDoc = {
-        name: name || file.name,
-        areaId,
-        projectId,
-        userId,
-        imageUrl,
-        storagePath,
-        uploadDate: now,
-        lastModified: now
-      };
+      // Current time for default values if serverTimestamp fails
+      const timestamp = new Date().toISOString();
       
-      console.log("Creating Firestore document...");
-      const newPhotoRef = doc(photosRef);
-      await setDoc(newPhotoRef, photoDoc);
-      console.log("Firestore document created with ID:", newPhotoRef.id);
+      try {
+        // Create photo document in Firestore
+        const photosRef = getPhotosRef(projectId);
+        const now = serverTimestamp();
+        const photoDoc = {
+          name: name || file.name,
+          areaId,
+          projectId,
+          userId,
+          imageUrl,
+          storagePath,
+          uploadDate: now,
+          lastModified: now
+        };
+        
+        console.log("Creating Firestore document...");
+        const newPhotoRef = doc(photosRef);
+        await setDoc(newPhotoRef, photoDoc);
+        console.log("Firestore document created with ID:", newPhotoRef.id);
+        
+        // Return the ID of the newly created photo
+        return newPhotoRef.id;
+      } catch (firestoreError: any) {
+        console.error("Error writing to Firestore:", firestoreError);
+        
+        if (firestoreError.code === 'permission-denied') {
+          // Generate a local ID since we can't get one from Firestore
+          const localId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          
+          console.warn("Firestore permission denied. Using local workaround with ID:", localId);
+          console.error(`
+IMPORTANT: Your Firebase Firestore security rules need to be updated!
+Current rules are preventing writing to the 'projects/${projectId}/photos' collection.
+
+Suggested Firestore Rules:
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to manage projects
+    match /projects/{projectId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
       
-      // Return the ID of the newly created photo
-      return newPhotoRef.id;
+      // Allow access to areas, photos, and tags within projects
+      match /{collection}/{docId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}
+          `);
+          
+          // Image was uploaded successfully even though we couldn't record it in Firestore
+          // Throw an error with photoId to let the client know about the partial success
+          const firestoreError = new Error("Failed to save photo metadata to database. Image was uploaded but database record could not be created.");
+          (firestoreError as any).code = 'permission-denied';
+          (firestoreError as any).photoId = localId;
+          (firestoreError as any).imageUrl = imageUrl;
+          throw firestoreError;
+        }
+        
+        throw firestoreError;
+      }
     } catch (storageError: any) {
       console.error("Firebase Storage error:", storageError);
       if (storageError.code === 'storage/unauthorized') {
@@ -740,7 +791,19 @@ service firebase.storage {
     }
   } catch (error: any) {
     console.error("Error uploading photo:", error);
-    throw new Error(`Failed to upload photo: ${error.message || "Unknown error"}`);
+    
+    // If the error already has a photoId property, it means we had a partial success
+    // (Storage upload worked but Firestore failed), so just re-throw it
+    if (error.photoId && error.imageUrl) {
+      throw error;
+    }
+    
+    // Otherwise wrap the error with a standard message
+    const wrappedError = new Error(`Failed to upload photo: ${error.message || "Unknown error"}`);
+    wrappedError.name = error.name;
+    if (error.code) (wrappedError as any).code = error.code;
+    
+    throw wrappedError;
   }
 }
 
@@ -998,12 +1061,67 @@ export async function logFirebasePermissions() {
     // Log Firestore rules for current user
     if (currentUser) {
       try {
-        const testDoc = doc(db, `permissions_test/${currentUser.uid}`);
-        await setDoc(testDoc, { testField: "test" });
-        console.log("Firestore write permission: ALLOWED");
-        await deleteDoc(testDoc);
+        // Try first with the projects collection which is what we actually need
+        try {
+          const projectsRef = collection(db, "projects");
+          const testProjectDoc = doc(projectsRef, `test_${Date.now()}`);
+          await setDoc(testProjectDoc, { 
+            testField: "test",
+            userId: currentUser.uid,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          console.log("Firestore projects write permission: ALLOWED");
+          await deleteDoc(testProjectDoc);
+        } catch (projectError) {
+          console.log("Firestore projects write permission: DENIED", projectError);
+          
+          // Fall back to a simple permissions test
+          const testDoc = doc(db, `permissions_test/${currentUser.uid}`);
+          await setDoc(testDoc, { testField: "test" });
+          console.log("Firestore general write permission: ALLOWED");
+          await deleteDoc(testDoc);
+        }
       } catch (e) {
         console.log("Firestore write permission: DENIED", e);
+        console.error("Suggested Firestore Rules:");
+        console.error(`
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read and write to projects they own
+    match /projects/{projectId} {
+      allow read, write, create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Allow authenticated users to read and write to areas in their projects
+      match /areas/{areaId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+      }
+      
+      // Allow authenticated users to read and write to photos in their projects
+      match /photos/{photoId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+        
+        // Allow authenticated users to read and write to tags for their photos
+        match /tags/{tagId} {
+          allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+        }
+      }
+    }
+    
+    // For testing permissions
+    match /permissions_test/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+        `);
       }
     }
   } catch (e) {
