@@ -36,6 +36,7 @@ function TagMarker({
   tag, 
   isActive = false, 
   isNumbered = false,
+  markerNumber,
   onClick,
   onEdit,
   onDelete
@@ -43,6 +44,7 @@ function TagMarker({
   tag: Tag;
   isActive?: boolean;
   isNumbered?: boolean;
+  markerNumber?: number;
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -65,7 +67,7 @@ function TagMarker({
       >
         {isNumbered ? (
           <span className="text-xs font-bold">
-            {tag.id}
+            {markerNumber || tag.id}
           </span>
         ) : (
           <TagIcon className="w-3 h-3" />
@@ -444,12 +446,13 @@ export default function PhotoViewPage() {
           />
           
           {/* Tag Markers */}
-          {photo.tags.map((tag) => (
+          {photo.tags.map((tag, index) => (
             <TagMarker 
               key={tag.id}
               tag={tag}
               isActive={activeTagId === tag.id}
-              isNumbered={false}
+              isNumbered={true}
+              markerNumber={index + 1}
               onClick={() => handleTagClick(tag.id)}
               onEdit={() => handleEditTag(tag)}
               onDelete={() => handleDeleteTag(tag)}
@@ -474,7 +477,7 @@ export default function PhotoViewPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {photo.tags.map((tag) => (
+              {photo.tags.map((tag, index) => (
                 <div 
                   key={tag.id}
                   className={`p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors ${
@@ -483,9 +486,14 @@ export default function PhotoViewPage() {
                   onClick={() => handleTagClick(tag.id)}
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium">{tag.description}</h3>
-                      {tag.details && <p className="text-sm text-muted-foreground mt-1">{tag.details}</p>}
+                    <div className="flex">
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground mr-2 text-xs font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{tag.description}</h3>
+                        {tag.details && <p className="text-sm text-muted-foreground mt-1">{tag.details}</p>}
+                      </div>
                     </div>
                     <div className="flex space-x-1">
                       <Button 

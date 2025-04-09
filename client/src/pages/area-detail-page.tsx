@@ -199,16 +199,26 @@ export default function AreaDetailPage() {
   
   return (
     <div className="container mx-auto p-4 pb-20">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" size="sm" className="mr-2" onClick={handleBackClick}>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{area.name}</h1>
-          <p className="text-muted-foreground">
-            {photos.length} photo{photos.length !== 1 ? "s" : ""}
-          </p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button variant="ghost" size="sm" className="mr-2" onClick={handleBackClick}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{area.name}</h1>
+            <p className="text-muted-foreground">
+              {photos.length} photo{photos.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
+        <Button 
+          onClick={() => {
+            // Navigate to upload page with pre-selected area
+            navigate(`/upload?areaId=${areaId}`);
+          }}
+        >
+          Add Photo
+        </Button>
       </div>
       
       {photos.length === 0 ? (
@@ -216,10 +226,16 @@ export default function AreaDetailPage() {
           <Image className="w-12 h-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No photos yet</h3>
           <p className="text-muted-foreground mb-4">
-            Upload photos to this area from the Add page
+            Add photos to get started with this area
           </p>
-          <Button onClick={() => navigate("/upload")}>
-            Upload Photo
+          <Button 
+            onClick={() => navigate(`/upload?areaId=${areaId}`)}
+            variant="outline"
+            size="lg"
+            className="flex items-center gap-2"
+          >
+            <Image className="w-4 h-4" />
+            Add Your First Photo
           </Button>
         </div>
       ) : (

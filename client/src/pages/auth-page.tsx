@@ -19,7 +19,6 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Please confirm your password"),
@@ -55,7 +54,6 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -69,7 +67,9 @@ export default function AuthPage() {
 
   // Handle register form submission
   const onRegisterSubmit = async (values: RegisterFormValues) => {
-    await registerLocalUser(values.username, values.email, values.password);
+    // Generate a username from the email (use part before @)
+    const username = values.email.split('@')[0];
+    await registerLocalUser(username, values.email, values.password);
   };
 
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -211,22 +211,6 @@ export default function AuthPage() {
               <div className="space-y-4">
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                    <FormField
-                      control={registerForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                              <Input placeholder="johndoe" className="pl-10" {...field} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     
                     <FormField
                       control={registerForm.control}
@@ -240,6 +224,9 @@ export default function AuthPage() {
                               <Input type="email" placeholder="example@email.com" className="pl-10" {...field} />
                             </div>
                           </FormControl>
+                          <FormDescription>
+                            Your username will be created from your email address
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

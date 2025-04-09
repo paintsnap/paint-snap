@@ -288,10 +288,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No image file provided" });
       }
       
-      const { areaId, name } = req.body;
+      const { areaId, name = 'Photo' } = req.body;
       
-      if (!areaId || !name) {
-        return res.status(400).json({ message: "Area ID and name are required" });
+      if (!areaId) {
+        return res.status(400).json({ message: "Area ID is required" });
       }
       
       // Check if area exists and belongs to the user

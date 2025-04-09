@@ -37,7 +37,7 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
-import { Home, MoreVertical, Plus } from "lucide-react";
+import { Home, MoreVertical, Plus, Upload, Camera } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -244,6 +244,22 @@ export default function AreasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Upload Card */}
+          <Card className="overflow-hidden hover:shadow-md transition-shadow border-dashed border-2 border-muted-foreground/30">
+            <div 
+              className="cursor-pointer h-full flex flex-col items-center justify-center p-6"
+              onClick={() => navigate('/upload')}
+            >
+              <div className="rounded-full bg-primary/10 p-4 mb-4">
+                <Plus className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-medium mb-1">Add New Photo</h3>
+              <p className="text-muted-foreground text-center">
+                Upload photos directly to any area of your project
+              </p>
+            </div>
+          </Card>
+        
           {areas.map((area) => (
             <Card key={area.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div 

@@ -31,7 +31,8 @@ import { z } from "zod";
 // Form schema for uploading a photo
 const uploadFormSchema = z.object({
   areaId: z.string().min(1, "Please select an area"),
-  name: z.string().min(1, "Photo name is required").max(100, "Photo name is too long"),
+  // Make name optional since we'll use a default value
+  name: z.string().max(100, "Photo name is too long").optional(),
   imageFile: z.any()
     .refine(file => file instanceof File, "Please select an image file")
     .refine(file => file.size <= 10 * 1024 * 1024, "File size should be less than 10MB")
@@ -50,11 +51,16 @@ export default function UploadPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Check URL for areaId parameter
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const preSelectedAreaId = searchParams.get('areaId') || '';
+  
   // Form setup
   const form = useForm<UploadFormValues>({
     resolver: zodResolver(uploadFormSchema),
     defaultValues: {
-      areaId: "",
+      areaId: preSelectedAreaId,
       name: "",
     },
   });
@@ -86,13 +92,15 @@ export default function UploadPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/areas/${data.areaId}/photos`] });
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       
       toast({
         title: "Photo uploaded",
         description: "Your photo has been uploaded successfully.",
       });
       
-      navigate(`/areas/${data.areaId}`);
+      // Redirect directly to the photo view page instead of area page
+      navigate(`/photos/${data.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -125,7 +133,7 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append("userId", profile.id.toString());
     formData.append("areaId", values.areaId);
-    formData.append("name", values.name);
+    formData.append("name", values.name || "Photo"); // Use default if empty
     formData.append("image", values.imageFile);
     
     uploadMutation.mutate(formData);
