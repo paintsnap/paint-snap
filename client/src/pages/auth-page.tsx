@@ -113,16 +113,16 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[var(--color-background)] flex flex-col md:flex-row">
       {/* Left side - Authentication forms */}
       <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md border-[var(--color-primary-light)] shadow-lg">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
-              <Camera className="h-6 w-6 text-[#2196F3]" />
-              <h2 className="text-xl font-semibold text-center">PaintSnap</h2>
+              <Camera className="h-6 w-6 text-[var(--color-primary)]" />
+              <h2 className="text-xl font-semibold text-center text-[var(--color-primary)]">PaintSnap</h2>
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl">
               Welcome
             </CardTitle>
             <CardDescription>
@@ -136,7 +136,7 @@ export default function AuthPage() {
                 type="button" 
                 variant={activeTab === "login" ? "default" : "outline"} 
                 onClick={() => setActiveTab("login")}
-                className={activeTab === "login" ? "bg-[#2196F3] hover:bg-blue-600" : ""}
+                className={activeTab === "login" ? "bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90" : ""}
               >
                 Sign In
               </Button>
@@ -144,7 +144,7 @@ export default function AuthPage() {
                 type="button" 
                 variant={activeTab === "register" ? "default" : "outline"}
                 onClick={() => setActiveTab("register")}
-                className={activeTab === "register" ? "bg-[#2196F3] hover:bg-blue-600" : ""}
+                className={activeTab === "register" ? "bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90" : ""}
               >
                 Register
               </Button>
@@ -200,7 +200,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-[#2196F3] hover:bg-blue-600"
+                      className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -287,7 +287,7 @@ export default function AuthPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-[#2196F3] hover:bg-blue-600"
+                      className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -313,17 +313,17 @@ export default function AuthPage() {
       </div>
 
       {/* Right side - Hero section */}
-      <div className="hidden md:flex flex-1 p-6 bg-gradient-to-br from-blue-500 to-blue-700 text-white flex-col justify-center px-12">
+      <div className="hidden md:flex flex-1 p-6 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] text-white flex-col justify-center px-12">
         <div className="max-w-md mx-auto">
           <Camera className="h-16 w-16 mb-6" />
-          <h1 className="text-4xl font-bold mb-4">PaintSnap</h1>
+          <h1 className="text-4xl mb-4">PaintSnap</h1>
           <p className="text-xl mb-8">
             Document your interior designs with precision annotations and detailed notes directly on your photos.
           </p>
           
           <div className="space-y-6">
             <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
+              <div className="bg-[var(--color-accent)] p-2 rounded-full mr-4">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   className="h-6 w-6" 
@@ -341,7 +341,7 @@ export default function AuthPage() {
             </div>
             
             <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
+              <div className="bg-[var(--color-accent)] p-2 rounded-full mr-4">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   className="h-6 w-6" 
@@ -359,7 +359,7 @@ export default function AuthPage() {
             </div>
             
             <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
+              <div className="bg-[var(--color-accent)] p-2 rounded-full mr-4">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   className="h-6 w-6" 

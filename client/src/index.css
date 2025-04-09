@@ -1,6 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary: #006D77;
+  --color-primary-light: #83C5BE;
+  --color-background: #EDF6F9;
+  --color-accent-light: #FFDDD2;
+  --color-accent: #E29578;
+}
 
 @layer base {
   * {
@@ -8,6 +19,44 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-[var(--color-background)] text-foreground;
+    font-family: 'Nanum Gothic', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Merriweather', serif;
+    font-weight: 900;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90;
+  }
+
+  .bg-primary {
+    @apply bg-[var(--color-primary)];
+  }
+
+  .bg-primary-light {
+    @apply bg-[var(--color-primary-light)];
+  }
+
+  .bg-accent {
+    @apply bg-[var(--color-accent)];
+  }
+
+  .bg-accent-light {
+    @apply bg-[var(--color-accent-light)];
+  }
+
+  .text-primary {
+    @apply text-[var(--color-primary)];
+  }
+
+  .text-accent {
+    @apply text-[var(--color-accent)];
+  }
+
+  .border-primary {
+    @apply border-[var(--color-primary)];
   }
 }
