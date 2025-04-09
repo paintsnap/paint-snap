@@ -129,52 +129,121 @@ function convertDoc<T>(doc: DocumentData): T {
 
 // Project service
 export async function createDefaultProject(user: User): Promise<Project> {
-  // Check if the user already has a default project
-  const projectsRef = getProjectsRef();
-  const q = query(
-    projectsRef, 
-    where("userId", "==", user.uid),
-    where("isDefault", "==", true)
-  );
-  
-  const querySnapshot = await getDocs(q);
-  if (!querySnapshot.empty) {
-    // User already has a default project
-    return convertDoc<Project>(querySnapshot.docs[0]);
+  try {
+    // Try a simple query first to see if user has any projects
+    const projectsRef = getProjectsRef();
+    const simpleQuery = query(
+      projectsRef,
+      where("userId", "==", user.uid)
+    );
+    
+    const simpleSnapshot = await getDocs(simpleQuery);
+    
+    // If user has any projects, look for the default one or use the first one
+    if (!simpleSnapshot.empty) {
+      const defaultProject = simpleSnapshot.docs.find(doc => doc.data().isDefault === true);
+      if (defaultProject) {
+        return convertDoc<Project>(defaultProject);
+      }
+      
+      // If no default project but user has projects, mark the first one as default
+      const firstProject = simpleSnapshot.docs[0];
+      const projectId = firstProject.id;
+      await updateDoc(doc(projectsRef, projectId), { isDefault: true });
+      
+      return {
+        ...convertDoc<Project>(firstProject),
+        isDefault: true
+      };
+    }
+    
+    // No projects found, create a new default project
+    const now = serverTimestamp();
+    const projectData = {
+      name: "My Project",
+      description: "My first project",
+      createdAt: now,
+      updatedAt: now,
+      userId: user.uid,
+      isDefault: true
+    };
+    
+    const newProjectRef = doc(projectsRef);
+    await setDoc(newProjectRef, projectData);
+    
+    const newProject = {
+      id: newProjectRef.id,
+      ...projectData,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+    
+    console.log("Default project created for new user:", newProject.id);
+    return newProject;
+  } catch (error) {
+    console.error("Error creating default project:", error);
+    
+    // Create a simple project with minimal operations if there's an index error
+    if ((error as any).code === 'failed-precondition') {
+      console.warn("Index error when creating default project, using simplified approach");
+      
+      const projectsRef = getProjectsRef();
+      const projectData = {
+        name: "My Project",
+        description: "My first project",
+        userId: user.uid,
+        isDefault: true
+      };
+      
+      const newProjectRef = doc(projectsRef);
+      await setDoc(newProjectRef, projectData);
+      
+      return {
+        id: newProjectRef.id,
+        ...projectData,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+    }
+    
+    throw error;
   }
-  
-  // Create a new default project
-  const now = serverTimestamp();
-  const projectData = {
-    name: "My Project",
-    description: "My first project",
-    createdAt: now,
-    updatedAt: now,
-    userId: user.uid,
-    isDefault: true
-  };
-  
-  const newProjectRef = doc(projectsRef);
-  await setDoc(newProjectRef, projectData);
-  
-  return {
-    id: newProjectRef.id,
-    ...projectData,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  };
 }
 
 export async function getUserProjects(userId: string): Promise<Project[]> {
-  const projectsRef = getProjectsRef();
-  const q = query(
-    projectsRef, 
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => convertDoc<Project>(doc));
+  try {
+    const projectsRef = getProjectsRef();
+    
+    // Try first with the compound query (requires an index)
+    try {
+      const q = query(
+        projectsRef, 
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => convertDoc<Project>(doc));
+    } catch (error: any) {
+      // If the error is about an index, try a simpler query without orderBy
+      if (error.code === 'failed-precondition') {
+        console.warn("Firestore index not available, falling back to simple query without ordering");
+        const simpleQuery = query(
+          projectsRef, 
+          where("userId", "==", userId)
+        );
+        
+        const querySnapshot = await getDocs(simpleQuery);
+        return querySnapshot.docs.map(doc => convertDoc<Project>(doc));
+      } else {
+        // Re-throw other errors
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching user projects:", error);
+    return []; // Return empty array instead of failing
+  }
 }
 
 export async function getProject(projectId: string): Promise<Project | null> {
