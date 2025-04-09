@@ -32,6 +32,8 @@ function useFirebaseData<T>(
 
   useEffect(() => {
     let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 2;
     
     const fetchData = async () => {
       setIsLoading(true);
@@ -44,15 +46,44 @@ function useFirebaseData<T>(
         }
       } catch (err) {
         console.error("Error fetching data:", err);
+        
         if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+          // Check for Firestore connectivity issues
+          const isFirebaseError = err && err.name === "FirebaseError";
+          const isConnectivityIssue = isFirebaseError && err.code === "unavailable";
+          
+          if (isConnectivityIssue && retryCount < maxRetries) {
+            // If there's a Firestore connectivity issue, retry
+            retryCount++;
+            console.log(`Firebase unavailable. Retrying (${retryCount}/${maxRetries})...`);
+            
+            // Don't set error or show toast for retries
+            // Just wait a moment and try again
+            setTimeout(fetchData, 1500);
+            return; // Skip setting error state and showing toast
+          }
+          
+          // Set error state
+          const errorMessage = isFirebaseError 
+            ? `Firebase Error (${err.code}): ${err.message}` 
+            : (err instanceof Error ? err.message : "An unknown error occurred");
+          
           setError(errorMessage);
           
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive"
-          });
+          // For connectivity issues, use a more specific message
+          if (isConnectivityIssue) {
+            toast({
+              title: "Connection Issue",
+              description: "Could not connect to the database. Some features may be limited.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: errorMessage,
+              variant: "destructive"
+            });
+          }
         }
       } finally {
         if (isMounted) {

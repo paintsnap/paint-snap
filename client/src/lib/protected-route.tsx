@@ -9,7 +9,7 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { profile, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const [location] = useLocation();
   
   // Check if the current path matches our route pattern
@@ -26,6 +26,9 @@ export function ProtectedRoute({
   
   console.log(`Protected route check: Path=${path}, Location=${location}, isActive=${isRouteActive}`);
 
+  // Check if the user is authenticated (either user or profile is sufficient)
+  const isAuthenticated = !!user; // Just need Firebase auth to be successful
+  
   return (
     <Route path={path}>
       {isRouteActive ? (
@@ -34,7 +37,7 @@ export function ProtectedRoute({
           <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : !profile ? (
+        ) : !isAuthenticated ? (
           // Redirect to landing page if not authenticated
           <Redirect to="/" />
         ) : (

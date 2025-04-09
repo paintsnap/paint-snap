@@ -51,44 +51,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           console.log("User authenticated with Firebase:", firebaseUser.uid);
           
-          // Get user profile from Firestore
-          const userDocRef = doc(db, "users", firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
+          // Set a basic profile right away so the app can function
+          const basicProfile = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+            photoUrl: firebaseUser.photoURL,
+            username: ''
+          };
           
-          if (userDoc.exists()) {
-            // User profile exists
-            const userData = userDoc.data();
-            setProfile({
-              id: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              photoUrl: userData.photoURL || firebaseUser.photoURL,
-              username: userData.username || ''
-            });
-          } else {
-            // Create user profile if it doesn't exist
-            await createUserProfile(firebaseUser);
+          setProfile(basicProfile);
+          
+          try {
+            // Try to get user profile from Firestore (this might fail if there's connectivity issues)
+            const userDocRef = doc(db, "users", firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
             
-            // Set basic profile from Firebase user
-            setProfile({
-              id: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              photoUrl: firebaseUser.photoURL,
-              username: ''
-            });
+            if (userDoc.exists()) {
+              // User profile exists - update with Firestore data
+              const userData = userDoc.data();
+              setProfile({
+                ...basicProfile,
+                displayName: userData.displayName || basicProfile.displayName,
+                photoUrl: userData.photoURL || basicProfile.photoUrl,
+                username: userData.username || ''
+              });
+            } else {
+              // Create user profile if it doesn't exist
+              await createUserProfile(firebaseUser);
+            }
+            
+            setError(null);
+          } catch (firestoreError) {
+            // Log the Firestore error but continue with the basic profile
+            console.error("Error fetching user profile from Firestore:", firestoreError);
+            console.log("Continuing with basic profile data from Firebase Auth");
+            
+            // Don't set error or show toast here - let the app continue with basic profile
+            // This is important for giving the user a better experience when Firestore has issues
           }
-          
-          setError(null);
         } catch (error) {
-          console.error("Error fetching user profile:", error);
-          setError(`Profile error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.error("Error in authentication process:", error);
+          setError(`Authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`);
           
           toast({
-            title: "Error",
-            description: "Failed to load your profile data",
+            title: "Authentication Error",
+            description: "There was a problem signing you in. Please try again.",
             variant: "destructive"
           });
+          
+          // Make sure we still unset loading even if there's an error
+          setLoading(false);
         }
       } else {
         console.log("No user signed in with Firebase");
@@ -168,21 +181,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateProfile(firebaseUser, { displayName });
       }
       
-      // Create user profile in Firestore
-      await setDoc(doc(db, "users", firebaseUser.uid), {
-        displayName: displayName || email.split('@')[0],
-        email,
-        photoURL: null,
-        createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp()
-      });
-      
-      // Create a default project for the new user
+      // Try to create user profile in Firestore, but continue if it fails
       try {
-        await createDefaultProject(firebaseUser);
-        console.log("Default project created for new user");
-      } catch (projectError) {
-        console.error("Error creating default project:", projectError);
+        await setDoc(doc(db, "users", firebaseUser.uid), {
+          displayName: displayName || email.split('@')[0],
+          email,
+          photoURL: null,
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp()
+        });
+        
+        // Try to create a default project for the new user
+        try {
+          await createDefaultProject(firebaseUser);
+          console.log("Default project created for new user");
+        } catch (projectError) {
+          console.error("Error creating default project:", projectError);
+          // Don't throw error - account is still created
+        }
+      } catch (firestoreError) {
+        console.error("Error creating user profile in Firestore:", firestoreError);
+        console.log("User created in Firebase Auth but profile creation in Firestore failed. This will be retried on next sign-in.");
+        // Don't throw error - basic authentication still works
       }
       
       toast({
