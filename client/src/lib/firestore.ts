@@ -365,14 +365,35 @@ export async function getPhotos(projectId: string, constraints: QueryConstraint[
   } catch (error) {
     console.error("Error fetching photos:", error);
     
-    // If the error is related to indexing, log a helpful message
+    // If the error is related to indexing, log a helpful message with clear instructions
     if ((error as any).code === 'failed-precondition') {
-      console.log("This query requires a Firestore index. Check the Firebase console for a link to create it.");
+      // Extract the index creation URL from the error message if available
+      const errorMessage = (error as any).message || '';
+      const indexUrlMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com\/project\/.*\/firestore\/indexes[^"'\s]+)/);
+      const indexUrl = indexUrlMatch ? indexUrlMatch[1] : null;
+      
+      console.error("⚠️ Firestore index required:");
+      console.error("=============================");
+      console.log("This query requires a Firestore index that needs to be created.");
       console.log("For the photos collection, you need an index with 'uploadDate' in descending order, plus any other fields used in constraints.");
+      
+      if (indexUrl) {
+        console.error("📋 DIRECT INDEX CREATION LINK:");
+        console.error("------------------------------");
+        console.error(indexUrl);
+        console.error("Copy and paste this URL into your browser to create the required index.");
+      } else {
+        console.error("To create the index manually:");
+        console.error("1. Go to https://console.firebase.google.com/project/" + import.meta.env.VITE_FIREBASE_PROJECT_ID + "/firestore/indexes");
+        console.error("2. Click 'Add Index'");
+        console.error("3. Select the collection mentioned in the error");
+        console.error("4. Add the fields in the correct order with ascending/descending as specified in the error");
+        console.error("5. Click 'Create'");
+      }
       
       // Try a simpler query without ordering if the original fails
       try {
-        console.log("Attempting to fetch photos without ordering...");
+        console.log("Attempting to fetch photos without ordering as a fallback...");
         const simpleQuery = query(getPhotosRef(projectId));
         const snapshot = await getDocs(simpleQuery);
         return snapshot.docs.map(doc => convertDoc<Photo>(doc));
@@ -429,9 +450,29 @@ export async function getPhotosWithTagCount(projectId: string, constraints: Quer
       } catch (error: any) {
         console.error(`Error counting tags for photo ${photo.id}:`, error);
         
-        // If the error is related to indexing, log a helpful message
+        // If the error is related to indexing, log a helpful message with index URL
         if (error.code === 'failed-precondition') {
-          console.log("This query requires a Firestore index. Check the Firebase console for the link to create it.");
+          // Extract the index creation URL from the error message if available
+          const errorMessage = error.message || '';
+          const indexUrlMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com\/project\/.*\/firestore\/indexes[^"'\s]+)/);
+          const indexUrl = indexUrlMatch ? indexUrlMatch[1] : null;
+          
+          console.error("⚠️ Firestore index required for tags:");
+          console.error("===================================");
+          
+          if (indexUrl) {
+            console.error("📋 DIRECT INDEX CREATION LINK:");
+            console.error("------------------------------");
+            console.error(indexUrl);
+            console.error("Copy and paste this URL into your browser to create the required index.");
+          } else {
+            console.error("To create the index manually:");
+            console.error("1. Go to https://console.firebase.google.com/project/" + import.meta.env.VITE_FIREBASE_PROJECT_ID + "/firestore/indexes");
+            console.error("2. Click 'Add Index'");
+            console.error("3. Select the 'tags' collection");
+            console.error("4. Add 'photoId' (ascending) and 'createdAt' (ascending) fields");
+            console.error("5. Click 'Create'");
+          }
         }
       }
       
@@ -446,9 +487,29 @@ export async function getPhotosWithTagCount(projectId: string, constraints: Quer
   } catch (error) {
     console.error("Error getting photos with tag count:", error);
     
-    // If the error is related to indexing, log a helpful message
+    // If the error is related to indexing, log a helpful message with index URL
     if ((error as any).code === 'failed-precondition') {
-      console.log("This query requires a Firestore index. Check the Firebase console for the link to create the index.");
+      // Extract the index creation URL from the error message if available
+      const errorMessage = (error as any).message || '';
+      const indexUrlMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com\/project\/.*\/firestore\/indexes[^"'\s]+)/);
+      const indexUrl = indexUrlMatch ? indexUrlMatch[1] : null;
+      
+      console.error("⚠️ Firestore index required for complex query:");
+      console.error("===========================================");
+      
+      if (indexUrl) {
+        console.error("📋 DIRECT INDEX CREATION LINK:");
+        console.error("------------------------------");
+        console.error(indexUrl);
+        console.error("Copy and paste this URL into your browser to create the required index.");
+      } else {
+        console.error("To create the index manually:");
+        console.error("1. Go to https://console.firebase.google.com/project/" + import.meta.env.VITE_FIREBASE_PROJECT_ID + "/firestore/indexes");
+        console.error("2. Click 'Add Index'");
+        console.error("3. Select the collection mentioned in the error");
+        console.error("4. Add the fields in the correct order with ascending/descending as specified in the error");
+        console.error("5. Click 'Create'");
+      }
     }
     
     // Return empty array on error to prevent app crashing
@@ -483,10 +544,29 @@ export async function getPhotoWithTags(projectId: string, photoId: string): Prom
     } catch (error) {
       console.error("Error fetching tags for photo:", error);
       
-      // If the error is related to indexing, log a helpful message
+      // If the error is related to indexing, log a helpful message with index URL
       if ((error as any).code === 'failed-precondition') {
-        console.log("This query requires a Firestore index. Check the Firebase console for a link to create it.");
-        console.log("You can create an index on 'tags' collection with 'createdAt' field in ascending order.");
+        // Extract the index creation URL from the error message if available
+        const errorMessage = (error as any).message || '';
+        const indexUrlMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com\/project\/.*\/firestore\/indexes[^"'\s]+)/);
+        const indexUrl = indexUrlMatch ? indexUrlMatch[1] : null;
+        
+        console.error("⚠️ Firestore index required for tags query:");
+        console.error("======================================");
+        
+        if (indexUrl) {
+          console.error("📋 DIRECT INDEX CREATION LINK:");
+          console.error("------------------------------");
+          console.error(indexUrl);
+          console.error("Copy and paste this URL into your browser to create the required index.");
+        } else {
+          console.error("To create the index manually:");
+          console.error("1. Go to https://console.firebase.google.com/project/" + import.meta.env.VITE_FIREBASE_PROJECT_ID + "/firestore/indexes");
+          console.error("2. Click 'Add Index'");
+          console.error("3. Select the 'tags' collection");
+          console.error("4. Add 'createdAt' (ascending) field");
+          console.error("5. Click 'Create'");
+        }
       }
     }
     
@@ -599,10 +679,29 @@ export async function getTags(projectId: string, photoId: string): Promise<Tag[]
   } catch (error) {
     console.error("Error fetching tags:", error);
     
-    // If the error is related to indexing, log a helpful message
+    // If the error is related to indexing, log a helpful message with index URL
     if ((error as any).code === 'failed-precondition') {
-      console.log("This query requires a Firestore index. Look in the Firebase console for a link to create it.");
-      console.log("You can also create this index manually by going to the Firebase console > Firestore Database > Indexes tab.");
+      // Extract the index creation URL from the error message if available
+      const errorMessage = (error as any).message || '';
+      const indexUrlMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com\/project\/.*\/firestore\/indexes[^"'\s]+)/);
+      const indexUrl = indexUrlMatch ? indexUrlMatch[1] : null;
+      
+      console.error("⚠️ Firestore index required for fetching tags:");
+      console.error("=========================================");
+      
+      if (indexUrl) {
+        console.error("📋 DIRECT INDEX CREATION LINK:");
+        console.error("------------------------------");
+        console.error(indexUrl);
+        console.error("Copy and paste this URL into your browser to create the required index.");
+      } else {
+        console.error("To create the index manually:");
+        console.error("1. Go to https://console.firebase.google.com/project/" + import.meta.env.VITE_FIREBASE_PROJECT_ID + "/firestore/indexes");
+        console.error("2. Click 'Add Index'");
+        console.error("3. Select the 'tags' collection");
+        console.error("4. Add 'createdAt' (ascending) field");
+        console.error("5. Click 'Create'");
+      }
     }
     
     // Return empty array on error to prevent app crashing

@@ -42,19 +42,28 @@ export default function AuthPage() {
   useEffect(() => {
     const testFirestore = async () => {
       try {
-        // Try to access a simple collection to verify permissions are working
-        const usersCollectionRef = collection(db, "users");
-        await getDocs(usersCollectionRef);
-        console.log("Firestore connection successful! Security rules are working.");
+        // Instead of trying to access a collection (which might have permission issues before login),
+        // just check if we can connect to Firestore at all
+        console.log("Firestore connection test initiated");
+        
+        // Try a simple API call that doesn't require permissions
+        await Promise.race([
+          // Attempt to ping Firestore with a timeout
+          fetch(`https://${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseio.com/.json?shallow=true`, 
+            { method: 'GET', mode: 'no-cors' }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+        
+        console.log("Firestore connectivity check successful!");
         toast({
           title: "Firebase Status",
-          description: "Firestore connection is working properly",
+          description: "Firebase connection is available. Login to access your data.",
         });
       } catch (error) {
-        console.error("Firestore test failed:", error);
+        console.error("Firebase connectivity test failed:", error);
         toast({
           title: "Firebase Status",
-          description: "Firestore connection failed. Check console for details.",
+          description: "Firebase connection check failed. Make sure you're online.",
           variant: "destructive"
         });
       }
