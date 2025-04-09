@@ -669,20 +669,8 @@ export async function uploadPhoto(
     // Log permissions before attempting upload
     await logFirebasePermissions();
     
-    // Re-enable image resizing to help with uploads
-    console.log("Resizing image to optimize upload...");
-    let resizedImage;
-    try {
-      resizedImage = await resizeImage(file, 1200, 1200, 0.7);
-      console.log("Image resized successfully:", {
-        originalSize: file.size,
-        resizedSize: resizedImage.size,
-        reduction: `${Math.round((1 - resizedImage.size / file.size) * 100)}%`
-      });
-    } catch (resizeError) {
-      console.warn("Image resize failed, will use original file:", resizeError);
-      resizedImage = file;
-    }
+    // Skip image resizing and just use the original file for troubleshooting
+    console.log("TROUBLESHOOTING: Uploading original file without resizing...");
     
     // Generate a unique filename
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -694,8 +682,8 @@ export async function uploadPhoto(
     console.log("Storage reference created for path:", storagePath);
     
     try {
-      // Try to upload using a more reliable method
-      console.log("Starting upload attempt...");
+      // Simple direct upload attempt for troubleshooting
+      console.log("Starting direct upload attempt...");
       const metadata = {
         contentType: file.type,
         customMetadata: {
@@ -705,42 +693,20 @@ export async function uploadPhoto(
         }
       };
       
-      // Upload the file to Firebase Storage using base64 string method for better reliability
-      console.log("About to upload file to Firebase Storage...");
+      // Upload the file to Firebase Storage directly
+      console.log("About to upload file to Firebase Storage directly...");
       let uploadTask;
       
       try {
-        // Convert Blob to base64 for more reliable uploads
-        const fileReader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          fileReader.onload = () => {
-            const base64String = fileReader.result as string;
-            // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
-            const base64Data = base64String.split(',')[1];
-            resolve(base64Data);
-          };
-          fileReader.onerror = reject;
-          fileReader.readAsDataURL(resizedImage);
-        });
-        
-        const base64Data = await base64Promise;
-        console.log("Image converted to base64 for upload");
-        
-        // Upload using a string instead of bytes for better reliability
-        uploadTask = await uploadString(storageRef, base64Data, 'base64', metadata);
+        // Try with direct bytes upload only
+        console.log("File size:", file.size, "bytes");
+        console.log("File type:", file.type);
+        uploadTask = await uploadBytes(storageRef, file, metadata);
         console.log("Upload completed successfully:", uploadTask);
       } catch (error: any) {
         console.error("STORAGE UPLOAD ERROR:", error);
-        
-        // Fall back to direct upload if string upload fails
-        console.log("Falling back to direct upload method...");
-        try {
-          uploadTask = await uploadBytes(storageRef, resizedImage, metadata);
-          console.log("Direct upload completed successfully");
-        } catch (fallbackError: any) {
-          console.error("FALLBACK UPLOAD ERROR:", fallbackError);
-          throw new Error(`Firebase Storage error during upload: ${error.message || String(error)}`);
-        }
+        console.error("Detailed error object:", JSON.stringify(error, null, 2));
+        throw new Error(`Firebase Storage error during direct upload: ${error.message || String(error)}`);
       }
       
       // Get the download URL with better error handling
