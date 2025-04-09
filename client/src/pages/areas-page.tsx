@@ -102,10 +102,19 @@ export default function AreasPage() {
   
   // Create new area
   const handleCreateArea = async (data: AreaFormValues) => {
-    if (!currentProject || !profile) {
+    if (!currentProject) {
       toast({
         title: "Error",
-        description: "Project or user information not available",
+        description: "Project information not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
         variant: "destructive",
       });
       return;
@@ -113,7 +122,8 @@ export default function AreasPage() {
     
     setIsCreatingArea(true);
     try {
-      await createArea(currentProject.id, profile.id, data.name);
+      // Use user.uid directly from Firebase auth instead of profile.id
+      await createArea(currentProject.id, user.uid, data.name);
       
       toast({
         title: "Area created",
