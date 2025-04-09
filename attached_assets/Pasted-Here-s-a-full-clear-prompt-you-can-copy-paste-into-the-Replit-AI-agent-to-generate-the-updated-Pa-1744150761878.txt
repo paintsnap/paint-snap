@@ -20,7 +20,7 @@ Here’s a full, clear prompt you can copy-paste into the Replit AI agent to gen
 >    - Upload a new Photo
 >    - The photo should be saved under that Area
 > 4. When viewing an Area, show a list of Photos inside it.
->    - Each Photo should have a kebab menu with: Rename Photo, Delete Photo, Move to another Area.
+>    - Each Photo should have a kebab menu with: Delete Photo, Move to another Area.
 > 5. When a Photo is tapped, open it full-screen in a Photo Viewer.
 >    - Users can tap anywhere on the image to add a Tag.
 >    - Each Tag has:
@@ -28,7 +28,7 @@ Here’s a full, clear prompt you can copy-paste into the Replit AI agent to gen
 >        - Details (e.g. paint name/type)
 >        - Notes (e.g. when it was last painted)
 >        - Optional photo upload (e.g. image of the paint tin)
->    - Tags should display as pins or small dots on the image. Tapping a pin opens a modal or sidebar with the tag details.
+>    - Tags should display as numbered dots on the image. Tapping a pin opens a modal or sidebar with the tag details.
 > 6. Add a **Bottom Navigation bar** with three buttons:
 >    - Home: takes user to the Areas list
 >    - Add: opens the new photo upload flow (select Area + upload photo)

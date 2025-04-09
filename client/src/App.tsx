@@ -9,6 +9,8 @@ import NotFound from "@/pages/not-found";
 import { Home, Plus, Grid, LogOut, Camera } from "lucide-react";
 
 // Import our pages
+import LandingPage from "@/pages/landing-page";
+import DashboardPage from "@/pages/dashboard-page";
 import AreasPage from "@/pages/areas-page";
 import UploadPage from "@/pages/upload-page";
 import AllPhotosPage from "@/pages/all-photos-page";
@@ -21,7 +23,7 @@ function BottomNavigation() {
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
       <div className="grid h-full grid-cols-3 mx-auto">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted"
         >
           <Home className="w-6 h-6 mb-1 text-primary" />
@@ -51,7 +53,7 @@ function TopNavigation() {
   
   const handleLogout = async () => {
     await signOut();
-    window.location.href = "/auth";
+    window.location.href = "/";
   };
   
   return (
@@ -92,11 +94,20 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
-      {/* Auth route - accessible without login */}
+      {/* Public routes */}
+      <Route path="/" component={LandingPage} />
       <Route path="/auth" component={AuthPage} />
       
       {/* Protected routes - require login */}
-      <ProtectedRoute path="/" component={() => {
+      <ProtectedRoute path="/dashboard" component={() => {
+        return (
+          <AppLayout>
+            <DashboardPage />
+          </AppLayout>
+        );
+      }} />
+      
+      <ProtectedRoute path="/areas" component={() => {
         return (
           <AppLayout>
             <AreasPage />

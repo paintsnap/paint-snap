@@ -35,8 +35,8 @@ export function ProtectedRoute({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : !profile ? (
-          // Redirect to auth page if not authenticated
-          <Redirect to="/auth" />
+          // Redirect to landing page if not authenticated
+          <Redirect to="/" />
         ) : (
           // Render the protected component if authenticated
           <Component />

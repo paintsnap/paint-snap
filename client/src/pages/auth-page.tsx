@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 
 // Define the schemas for login and register forms
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -37,7 +37,7 @@ export default function AuthPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (profile && !isLoading) {
-      setLocation("/");
+      setLocation("/dashboard");
     }
   }, [profile, isLoading, setLocation]);
 
@@ -45,7 +45,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -62,7 +62,7 @@ export default function AuthPage() {
 
   // Handle login form submission
   const onLoginSubmit = async (values: LoginFormValues) => {
-    await loginLocalUser(values.username, values.password);
+    await loginLocalUser(values.email, values.password);
   };
 
   // Handle register form submission
@@ -128,14 +128,14 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                              <Input placeholder="johndoe" className="pl-10" {...field} />
+                              <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                              <Input type="email" placeholder="example@email.com" className="pl-10" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
