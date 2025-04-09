@@ -50,7 +50,7 @@ const areaFormSchema = z.object({
 type AreaFormValues = z.infer<typeof areaFormSchema>;
 
 export default function AreasPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isAddAreaDialogOpen, setIsAddAreaDialogOpen] = useState(false);
@@ -81,7 +81,7 @@ export default function AreasPage() {
     error 
   } = useQuery<AreaWithPhotos[]>({ 
     queryKey: ["/api/areas"],
-    enabled: !!user,
+    enabled: !!profile,
   });
   
   // Mutation to create a new area
@@ -159,11 +159,11 @@ export default function AreasPage() {
   
   // Handle creating a new area
   const onSubmitNewArea = (values: AreaFormValues) => {
-    if (!user) return;
+    if (!profile) return;
     
     createAreaMutation.mutate({
       name: values.name,
-      userId: user.id,
+      userId: profile.id,
     });
   };
   
