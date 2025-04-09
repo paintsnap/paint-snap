@@ -83,13 +83,13 @@ export default function AreaDetailPage() {
     usePhotosByArea(projectId, areaId || '');
     
   // Convert photos to PhotoWithTags[]
-  const photos: PhotoWithTags[] = photosData.map(photo => ({
+  const photos: PhotoWithTags[] = photosData ? photosData.map(photo => ({
     ...photo,
     tagCount: (photo as any).tagCount || 0
-  }));
+  })) : [];
 
   // Find current area object
-  const area = areas.find(a => a.id === areaId);
+  const area = areas?.find(a => a.id === areaId);
   
   // Handle moving a photo
   const handleMoveConfirm = async () => {
@@ -313,13 +313,16 @@ export default function AreaDetailPage() {
                 <SelectValue placeholder="Select an area" />
               </SelectTrigger>
               <SelectContent>
-                {areas
-                  .filter(a => a.id !== areaId)
-                  .map((area) => (
-                    <SelectItem key={area.id} value={area.id.toString()}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
+                {areas && areas.length > 0 
+                  ? areas
+                    .filter(a => a.id !== areaId)
+                    .map((area) => (
+                      <SelectItem key={area.id} value={area.id.toString()}>
+                        {area.name}
+                      </SelectItem>
+                    ))
+                  : <SelectItem value="" disabled>No other areas available</SelectItem>
+                }
               </SelectContent>
             </Select>
           </div>
