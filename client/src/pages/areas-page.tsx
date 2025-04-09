@@ -57,7 +57,7 @@ const areaFormSchema = z.object({
 type AreaFormValues = z.infer<typeof areaFormSchema>;
 
 export default function AreasPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
