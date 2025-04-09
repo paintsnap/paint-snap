@@ -52,12 +52,11 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Check URL for areaId parameter
-  const [location] = useLocation();
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
-  const preSelectedAreaId = searchParams.get('areaId') || '';
+  // Check URL for areaId parameter directly from window.location
+  const urlParams = new URLSearchParams(window.location.search);
+  const preSelectedAreaId = urlParams.get('areaId') || '';
   
-  console.log("Upload page - preselected area ID:", preSelectedAreaId);
+  console.log("Upload page - preselected area ID (from window.location):", preSelectedAreaId, "URL:", window.location.href);
   
   // Get previous page to return to
   const goBack = () => {

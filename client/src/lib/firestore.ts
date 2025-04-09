@@ -649,7 +649,6 @@ export async function getPhotoWithTags(projectId: string, photoId: string): Prom
   }
 }
 
-// @ts-nocheck - Ignoring type issues with error handling for now
 export async function uploadPhoto(
   projectId: string,
   photoData: {
@@ -666,6 +665,9 @@ export async function uploadPhoto(
       projectId, userId, areaId, fileName: file.name, fileSize: file.size
     });
     
+    // Log permissions before attempting upload
+    await logFirebasePermissions();
+    
     // Skip image resizing for now to troubleshoot upload issues
     // const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
     
@@ -676,41 +678,69 @@ export async function uploadPhoto(
     
     // Get storage reference
     const storageRef = ref(storage, storagePath);
-    console.log("Storage reference created");
+    console.log("Storage reference created for path:", storagePath);
     
-    // Upload directly without resizing for troubleshooting
-    console.log("Starting upload...");
-    const uploadTask = await uploadBytes(storageRef, file);
-    console.log("Upload completed successfully:", uploadTask);
-    
-    // Get the download URL
-    const imageUrl = await getDownloadURL(storageRef);
-    console.log("Download URL obtained:", imageUrl);
-    
-    // Create photo document in Firestore
-    const photosRef = getPhotosRef(projectId);
-    const now = serverTimestamp();
-    const photoDoc = {
-      name: name || file.name,
-      areaId,
-      projectId,
-      userId,
-      imageUrl,
-      storagePath,
-      uploadDate: now,
-      lastModified: now
-    };
-    
-    console.log("Creating Firestore document...");
-    const newPhotoRef = doc(photosRef);
-    await setDoc(newPhotoRef, photoDoc);
-    console.log("Firestore document created with ID:", newPhotoRef.id);
-    
-    // Return the ID of the newly created photo
-    return newPhotoRef.id;
-  } catch (error) {
+    try {
+      // Try to upload in smaller chunks for better error reporting
+      console.log("Starting upload attempt...");
+      const metadata = {
+        contentType: file.type,
+        customMetadata: {
+          'userId': userId,
+          'projectId': projectId,
+          'areaId': areaId
+        }
+      };
+      
+      const uploadTask = await uploadBytes(storageRef, file, metadata);
+      console.log("Upload completed successfully:", uploadTask);
+      
+      // Get the download URL
+      const imageUrl = await getDownloadURL(storageRef);
+      console.log("Download URL obtained:", imageUrl);
+      
+      // Create photo document in Firestore
+      const photosRef = getPhotosRef(projectId);
+      const now = serverTimestamp();
+      const photoDoc = {
+        name: name || file.name,
+        areaId,
+        projectId,
+        userId,
+        imageUrl,
+        storagePath,
+        uploadDate: now,
+        lastModified: now
+      };
+      
+      console.log("Creating Firestore document...");
+      const newPhotoRef = doc(photosRef);
+      await setDoc(newPhotoRef, photoDoc);
+      console.log("Firestore document created with ID:", newPhotoRef.id);
+      
+      // Return the ID of the newly created photo
+      return newPhotoRef.id;
+    } catch (storageError: any) {
+      console.error("Firebase Storage error:", storageError);
+      if (storageError.code === 'storage/unauthorized') {
+        console.error("FIREBASE STORAGE PERMISSION DENIED - Please check your Firebase Storage rules");
+        console.error("Suggested Storage Rules:");
+        console.error(`
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+        `);
+      }
+      throw storageError;
+    }
+  } catch (error: any) {
     console.error("Error uploading photo:", error);
-    throw new Error(`Failed to upload photo: ${error?.message || "Unknown error"}`);
+    throw new Error(`Failed to upload photo: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -944,4 +974,39 @@ export async function deleteTag(projectId: string, photoId: string, tagId: strin
   // Delete tag document
   const tagRef = doc(getTagsRef(projectId, photoId), tagId);
   await deleteDoc(tagRef);
+}
+
+// Function to log Firebase permissions
+export async function logFirebasePermissions() {
+  console.log("Checking Firebase permissions...");
+  
+  try {
+    // Log Storage rules
+    const testStoragePath = "test.txt";
+    const storageRef = ref(storage, testStoragePath);
+    console.log("Storage reference created for test path:", testStoragePath);
+    
+    // Log current user (who would be making the request)
+    const { currentUser } = await import('./firebase').then(m => m.auth);
+    console.log("Current Firebase user:", currentUser ? {
+      uid: currentUser.uid,
+      email: currentUser.email,
+      emailVerified: currentUser.emailVerified,
+      isAnonymous: currentUser.isAnonymous
+    } : "No user signed in");
+    
+    // Log Firestore rules for current user
+    if (currentUser) {
+      try {
+        const testDoc = doc(db, `permissions_test/${currentUser.uid}`);
+        await setDoc(testDoc, { testField: "test" });
+        console.log("Firestore write permission: ALLOWED");
+        await deleteDoc(testDoc);
+      } catch (e) {
+        console.log("Firestore write permission: DENIED", e);
+      }
+    }
+  } catch (e) {
+    console.error("Error checking Firebase permissions:", e);
+  }
 }
