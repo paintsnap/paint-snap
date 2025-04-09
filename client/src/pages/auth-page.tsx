@@ -38,7 +38,7 @@ export default function AuthPage() {
   const { profile, isLoading, error, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
-  // Test Firestore connection
+  // Silently test Firestore connection without showing toasts
   useEffect(() => {
     const testFirestore = async () => {
       try {
@@ -55,22 +55,15 @@ export default function AuthPage() {
         ]);
         
         console.log("Firestore connectivity check successful!");
-        toast({
-          title: "Firebase Status",
-          description: "Firebase connection is available. Login to access your data.",
-        });
+        // No toast for successful connection - only log it
       } catch (error) {
         console.error("Firebase connectivity test failed:", error);
-        toast({
-          title: "Firebase Status",
-          description: "Firebase connection check failed. Make sure you're online.",
-          variant: "destructive"
-        });
+        // No toast for failed connection - only log it
       }
     };
     
     testFirestore();
-  }, [toast]);
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
