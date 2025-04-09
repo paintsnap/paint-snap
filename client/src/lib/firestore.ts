@@ -356,11 +356,34 @@ export async function deleteArea(projectId: string, areaId: string): Promise<voi
 
 // Photo service
 export async function getPhotos(projectId: string, constraints: QueryConstraint[] = []): Promise<Photo[]> {
-  const photosRef = getPhotosRef(projectId);
-  const q = query(photosRef, ...constraints, orderBy("uploadDate", "desc"));
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => convertDoc<Photo>(doc));
+  try {
+    const photosRef = getPhotosRef(projectId);
+    const q = query(photosRef, ...constraints, orderBy("uploadDate", "desc"));
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => convertDoc<Photo>(doc));
+  } catch (error) {
+    console.error("Error fetching photos:", error);
+    
+    // If the error is related to indexing, log a helpful message
+    if ((error as any).code === 'failed-precondition') {
+      console.log("This query requires a Firestore index. Check the Firebase console for a link to create it.");
+      console.log("For the photos collection, you need an index with 'uploadDate' in descending order, plus any other fields used in constraints.");
+      
+      // Try a simpler query without ordering if the original fails
+      try {
+        console.log("Attempting to fetch photos without ordering...");
+        const simpleQuery = query(getPhotosRef(projectId));
+        const snapshot = await getDocs(simpleQuery);
+        return snapshot.docs.map(doc => convertDoc<Photo>(doc));
+      } catch (fallbackError) {
+        console.error("Fallback query also failed:", fallbackError);
+      }
+    }
+    
+    // Return empty array on error to prevent app crashing
+    return [];
+  }
 }
 
 export async function getPhotosByArea(projectId: string, areaId: string): Promise<Photo[]> {
@@ -372,37 +395,65 @@ export async function getPhotosByUser(projectId: string, userId: string): Promis
 }
 
 export async function getPhotosWithTagCount(projectId: string, constraints: QueryConstraint[] = []): Promise<PhotoWithTags[]> {
-  const photos = await getPhotos(projectId, constraints);
-  const photosWithTags: PhotoWithTags[] = [];
-  
-  // Get area names for each photo
-  const areaCache: { [areaId: string]: string } = {};
-  
-  for (const photo of photos) {
-    // Get area name (use cache to minimize Firestore reads)
-    let areaName = undefined;
-    if (areaCache[photo.areaId]) {
-      areaName = areaCache[photo.areaId];
-    } else {
-      const area = await getArea(projectId, photo.areaId);
-      if (area) {
-        areaName = area.name;
-        areaCache[photo.areaId] = areaName;
+  try {
+    const photos = await getPhotos(projectId, constraints);
+    const photosWithTags: PhotoWithTags[] = [];
+    
+    // Get area names for each photo
+    const areaCache: { [areaId: string]: string } = {};
+    
+    for (const photo of photos) {
+      // Get area name (use cache to minimize Firestore reads)
+      let areaName = undefined;
+      if (areaCache[photo.areaId]) {
+        areaName = areaCache[photo.areaId];
+      } else {
+        try {
+          const area = await getArea(projectId, photo.areaId);
+          if (area) {
+            areaName = area.name;
+            areaCache[photo.areaId] = areaName;
+          }
+        } catch (error) {
+          console.error(`Error fetching area for photo ${photo.id}:`, error);
+          // Continue with undefined areaName
+        }
       }
+      
+      // Count tags - handle potential indexing issues
+      let tagCount = 0;
+      try {
+        const tagsRef = getTagsRef(projectId, photo.id);
+        const tagsSnapshot = await getDocs(tagsRef);
+        tagCount = tagsSnapshot.size;
+      } catch (error: any) {
+        console.error(`Error counting tags for photo ${photo.id}:`, error);
+        
+        // If the error is related to indexing, log a helpful message
+        if (error.code === 'failed-precondition') {
+          console.log("This query requires a Firestore index. Check the Firebase console for the link to create it.");
+        }
+      }
+      
+      photosWithTags.push({
+        ...photo,
+        tagCount,
+        areaName
+      });
     }
     
-    // Count tags
-    const tagsRef = getTagsRef(projectId, photo.id);
-    const tagsSnapshot = await getDocs(tagsRef);
+    return photosWithTags;
+  } catch (error) {
+    console.error("Error getting photos with tag count:", error);
     
-    photosWithTags.push({
-      ...photo,
-      tagCount: tagsSnapshot.size,
-      areaName
-    });
+    // If the error is related to indexing, log a helpful message
+    if ((error as any).code === 'failed-precondition') {
+      console.log("This query requires a Firestore index. Check the Firebase console for the link to create the index.");
+    }
+    
+    // Return empty array on error to prevent app crashing
+    return [];
   }
-  
-  return photosWithTags;
 }
 
 export async function getPhoto(projectId: string, photoId: string): Promise<Photo | null> {
@@ -417,17 +468,36 @@ export async function getPhoto(projectId: string, photoId: string): Promise<Phot
 }
 
 export async function getPhotoWithTags(projectId: string, photoId: string): Promise<{ photo: Photo, tags: Tag[] } | null> {
-  const photo = await getPhoto(projectId, photoId);
-  if (!photo) {
+  try {
+    const photo = await getPhoto(projectId, photoId);
+    if (!photo) {
+      return null;
+    }
+    
+    let tags: Tag[] = [];
+    try {
+      const tagsRef = getTagsRef(projectId, photoId);
+      const q = query(tagsRef, orderBy("createdAt"));
+      const tagsSnapshot = await getDocs(q);
+      tags = tagsSnapshot.docs.map(doc => convertDoc<Tag>(doc));
+    } catch (error) {
+      console.error("Error fetching tags for photo:", error);
+      
+      // If the error is related to indexing, log a helpful message
+      if ((error as any).code === 'failed-precondition') {
+        console.log("This query requires a Firestore index. Check the Firebase console for a link to create it.");
+        console.log("You can create an index on 'tags' collection with 'createdAt' field in ascending order.");
+      }
+    }
+    
+    return { photo, tags };
+  } catch (error) {
+    console.error("Error in getPhotoWithTags:", error);
+    
+    // If this is a permission error, especially in initial usage, return null
+    // to allow graceful handling in the UI
     return null;
   }
-  
-  const tagsRef = getTagsRef(projectId, photoId);
-  const q = query(tagsRef, orderBy("createdAt"));
-  const tagsSnapshot = await getDocs(q);
-  const tags = tagsSnapshot.docs.map(doc => convertDoc<Tag>(doc));
-  
-  return { photo, tags };
 }
 
 export async function uploadPhoto(
@@ -520,11 +590,24 @@ export async function deletePhoto(projectId: string, photoId: string): Promise<v
 
 // Tag service
 export async function getTags(projectId: string, photoId: string): Promise<Tag[]> {
-  const tagsRef = getTagsRef(projectId, photoId);
-  const q = query(tagsRef, orderBy("createdAt"));
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => convertDoc<Tag>(doc));
+  try {
+    const tagsRef = getTagsRef(projectId, photoId);
+    const q = query(tagsRef, orderBy("createdAt"));
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => convertDoc<Tag>(doc));
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    
+    // If the error is related to indexing, log a helpful message
+    if ((error as any).code === 'failed-precondition') {
+      console.log("This query requires a Firestore index. Look in the Firebase console for a link to create it.");
+      console.log("You can also create this index manually by going to the Firebase console > Firestore Database > Indexes tab.");
+    }
+    
+    // Return empty array on error to prevent app crashing
+    return [];
+  }
 }
 
 export async function getTag(projectId: string, photoId: string, tagId: string): Promise<Tag | null> {

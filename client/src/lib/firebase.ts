@@ -1,6 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, EmailAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, updateDoc, deleteDoc, orderBy, Timestamp, DocumentReference, FieldValue, serverTimestamp } from "firebase/firestore";
+import { 
+  getFirestore, enableIndexedDbPersistence, collection, doc, setDoc, getDoc, 
+  getDocs, query, where, updateDoc, deleteDoc, orderBy, Timestamp, 
+  DocumentReference, FieldValue, serverTimestamp, connectFirestoreEmulator
+} from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 // Firebase configuration
@@ -22,8 +26,23 @@ export const storage = getStorage(app);
 
 // Enable Firestore offline persistence (helps with brief connectivity issues)
 try {
-  // Note: Web version 9 no longer has settings and enablePersistence APIs in the same way as v8
-  // This is simplified to avoid TypeScript errors, but the functionality isn't fully implemented
+  // Firebase v9 persistence enablement
+  enableIndexedDbPersistence(db)
+    .then(() => {
+      console.log("Firestore persistence enabled successfully");
+    })
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // Multiple tabs open, persistence can only be enabled in one tab at a time.
+        console.error('Persistence failed: Multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        // The current browser does not support all of the features required for persistence
+        console.error('Persistence is not available in this browser');
+      } else {
+        console.error('Error enabling persistence:', err);
+      }
+    });
+  
   console.log("Firestore initialized. Error handling for unavailable service implemented.");
 } catch (error) {
   console.error("Error initializing Firestore:", error);
