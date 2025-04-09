@@ -249,16 +249,15 @@ export default function AreaDetailPage() {
                 <div className="h-48 bg-muted">
                   <img 
                     src={photo.imageUrl} 
-                    alt={photo.name} 
+                    alt="Photo" 
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <CardHeader className="p-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-base">{photo.name}</CardTitle>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Tag className="w-3 h-3 mr-1" />
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Tag className="w-4 h-4 mr-1 text-primary" />
                         {photo.tagCount} tag{photo.tagCount !== 1 ? "s" : ""}
                       </div>
                     </div>

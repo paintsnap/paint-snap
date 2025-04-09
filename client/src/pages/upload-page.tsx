@@ -31,8 +31,6 @@ import { z } from "zod";
 // Form schema for uploading a photo
 const uploadFormSchema = z.object({
   areaId: z.string().min(1, "Please select an area"),
-  // Make name optional since we'll use a default value
-  name: z.string().max(100, "Photo name is too long").optional(),
   imageFile: z.any()
     .refine(file => file instanceof File, "Please select an image file")
     .refine(file => file.size <= 10 * 1024 * 1024, "File size should be less than 10MB")
@@ -61,7 +59,6 @@ export default function UploadPage() {
     resolver: zodResolver(uploadFormSchema),
     defaultValues: {
       areaId: preSelectedAreaId,
-      name: "",
     },
   });
   
@@ -133,7 +130,8 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append("userId", profile.id.toString());
     formData.append("areaId", values.areaId);
-    formData.append("name", values.name || "Photo"); // Use default if empty
+    // Still send a name for the backend, but we won't display it
+    formData.append("name", "");
     formData.append("image", values.imageFile);
     
     uploadMutation.mutate(formData);
@@ -268,20 +266,7 @@ export default function UploadPage() {
                 )}
               />
               
-              {/* Photo Name */}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Photo Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Living Room Wall" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* No Photo Name field required */}
               
               <Button 
                 type="submit" 

@@ -195,18 +195,17 @@ export default function AllPhotosPage() {
                 <div className="h-48 bg-muted">
                   <img 
                     src={photo.imageUrl} 
-                    alt={photo.name} 
+                    alt="Photo" 
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <CardHeader className="p-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-base">{photo.name}</CardTitle>
-                      <div className="flex flex-col text-xs text-muted-foreground">
-                        <span>Area: {photo.areaName}</span>
-                        <div className="flex items-center">
-                          <Tag className="w-3 h-3 mr-1" />
+                      <div className="flex flex-col text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">{photo.areaName}</span>
+                        <div className="flex items-center mt-1">
+                          <Tag className="w-4 h-4 mr-1 text-primary" />
                           {photo.tagCount} tag{photo.tagCount !== 1 ? "s" : ""}
                         </div>
                       </div>

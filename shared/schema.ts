@@ -31,7 +31,7 @@ export const photos = pgTable("photos", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   areaId: integer("area_id").references(() => areas.id).notNull(),
-  name: text("name").notNull(),
+  name: text("name").default("").notNull(), // Default empty name, but still required for DB schema compatibility
   filename: text("filename").notNull(),
   uploadDate: timestamp("upload_date").defaultNow().notNull(),
   lastModified: timestamp("last_modified").defaultNow().notNull(),

@@ -406,9 +406,8 @@ export default function PhotoViewPage() {
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{photo.name}</h1>
+          <h1 className="text-2xl font-bold">{photo.areaName}</h1>
           <p className="text-muted-foreground">
-            {photo.areaName && `${photo.areaName} • `}
             {photo.tagCount} tag{photo.tagCount !== 1 ? "s" : ""}
           </p>
         </div>
@@ -441,7 +440,7 @@ export default function PhotoViewPage() {
         >
           <img 
             src={photo.imageUrl} 
-            alt={photo.name} 
+            alt="Photo" 
             className="w-full h-auto"
           />
           
