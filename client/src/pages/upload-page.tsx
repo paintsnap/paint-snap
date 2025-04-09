@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Area, InsertPhoto } from "@shared/schema";
+import { useProject } from "@/hooks/use-project";
+import { useAreas } from "@/hooks/use-firebase-data";
+import { uploadPhoto } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Upload, ImagePlus } from "lucide-react";
+import { Camera, Upload, ImagePlus, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,16 +43,28 @@ const uploadFormSchema = z.object({
 type UploadFormValues = z.infer<typeof uploadFormSchema>;
 
 export default function UploadPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const { currentProject } = useProject();
+  const projectId = currentProject?.id || '';
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Check URL for areaId parameter
   const [location] = useLocation();
   const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const preSelectedAreaId = searchParams.get('areaId') || '';
+  
+  // Get previous page to return to
+  const goBack = () => {
+    if (preSelectedAreaId) {
+      navigate(`/areas/${preSelectedAreaId}`);
+    } else {
+      navigate("/areas");
+    }
+  };
   
   // Form setup
   const form = useForm<UploadFormValues>({
@@ -62,51 +74,22 @@ export default function UploadPage() {
     },
   });
   
-  // Query to get all areas
+  // Fetch areas using Firebase hook - filtered by current project
   const { 
     data: areas = [], 
-    isLoading: isAreasLoading 
-  } = useQuery<Area[]>({ 
-    queryKey: ["/api/areas"],
-    enabled: !!profile,
-  });
+    isLoading: isAreasLoading,
+    error: areasError 
+  } = useAreas(projectId);
   
-  // Mutation to upload a photo
-  const uploadMutation = useMutation({
-    mutationFn: async (photoData: FormData) => {
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        body: photoData,
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to upload photo");
-      }
-      
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/areas/${data.areaId}/photos`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      
-      toast({
-        title: "Photo uploaded",
-        description: "Your photo has been uploaded successfully.",
-      });
-      
-      // Redirect directly to the photo view page instead of area page
-      navigate(`/photos/${data.id}`);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to upload photo",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // For safe rendering
+  const safeAreas = areas || [];
+  
+  // Area type for type safety
+  interface AreaType {
+    id: string;
+    name: string;
+    [key: string]: any; // For other properties
+  }
   
   // Handle file selection
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,18 +106,39 @@ export default function UploadPage() {
     reader.readAsDataURL(file);
   };
   
-  // Handle form submission
+  // Handle form submission with Firebase
   const onSubmit = async (values: UploadFormValues) => {
-    if (!profile) return;
+    if (!user || !profile || !projectId) return;
     
-    const formData = new FormData();
-    formData.append("userId", profile.id.toString());
-    formData.append("areaId", values.areaId);
-    // Still send a name for the backend, but we won't display it
-    formData.append("name", "");
-    formData.append("image", values.imageFile);
-    
-    uploadMutation.mutate(formData);
+    setIsUploading(true);
+    try {
+      const photoFile = values.imageFile;
+      const areaId = values.areaId;
+      
+      // Upload using Firebase Storage and Firestore
+      const photoId = await uploadPhoto(projectId, {
+        userId: user.uid,
+        areaId: areaId,
+        name: "", // Empty name as per requirement
+        file: photoFile
+      });
+      
+      toast({
+        title: "Photo uploaded",
+        description: "Your photo has been uploaded successfully.",
+      });
+      
+      // Navigate to the photo view
+      navigate(`/photos/${photoId}`);
+    } catch (error: any) {
+      toast({
+        title: "Failed to upload photo",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   // Trigger file input click
@@ -144,7 +148,7 @@ export default function UploadPage() {
   
   // Create a new area if none exists
   const handleCreateArea = () => {
-    navigate("/");
+    navigate("/areas");
   };
   
   if (isAreasLoading) {
@@ -156,7 +160,7 @@ export default function UploadPage() {
   }
   
   // If there are no areas, show a message asking the user to create one first
-  if (areas.length === 0) {
+  if (safeAreas.length === 0) {
     return (
       <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
         <Camera className="w-12 h-12 text-muted-foreground mb-4" />
@@ -173,9 +177,20 @@ export default function UploadPage() {
   
   return (
     <div className="container mx-auto p-4 pb-20">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Upload Photo</h1>
-        <p className="text-muted-foreground">Add a new photo to your project</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Upload Photo</h1>
+          <p className="text-muted-foreground">Add a new photo to your project</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={goBack}
+          className="flex items-center gap-1"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Cancel
+        </Button>
       </div>
       
       <Card className="mx-auto max-w-lg">
@@ -255,7 +270,7 @@ export default function UploadPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {areas.map((area) => (
+                          {safeAreas.map((area: AreaType) => (
                             <SelectItem key={area.id} value={area.id.toString()}>
                               {area.name}
                             </SelectItem>
@@ -270,23 +285,33 @@ export default function UploadPage() {
               
               {/* No Photo Name field required */}
               
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={uploadMutation.isPending || !imagePreview}
-              >
-                {uploadMutation.isPending ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Photo
-                  </>
-                )}
-              </Button>
+              <div className="flex space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={goBack}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1" 
+                  disabled={isUploading || !imagePreview}
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Photo
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>

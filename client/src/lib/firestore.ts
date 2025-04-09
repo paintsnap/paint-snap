@@ -650,47 +650,52 @@ export async function getPhotoWithTags(projectId: string, photoId: string): Prom
 }
 
 export async function uploadPhoto(
-  projectId: string, 
-  areaId: string, 
-  userId: string, 
-  file: File, 
-  name: string = ""
-): Promise<Photo> {
-  // Resize image before upload
-  const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
+  projectId: string,
+  photoData: {
+    userId: string,
+    areaId: string,
+    name: string,
+    file: File
+  }
+): Promise<string> {
+  const { userId, areaId, name, file } = photoData;
   
-  // Generate a unique filename
-  const fileName = `${Date.now()}_${file.name}`;
-  const storagePath = `users/${userId}/projects/${projectId}/photos/${fileName}`;
-  const storageRef = ref(storage, storagePath);
-  
-  // Upload to Firebase Storage
-  await uploadBytes(storageRef, resizedImage);
-  const imageUrl = await getDownloadURL(storageRef);
-  
-  // Create photo document in Firestore
-  const photosRef = getPhotosRef(projectId);
-  const now = serverTimestamp();
-  const photoData = {
-    name: name || file.name,
-    areaId,
-    projectId,
-    userId,
-    imageUrl,
-    storagePath,
-    uploadDate: now,
-    lastModified: now
-  };
-  
-  const newPhotoRef = doc(photosRef);
-  await setDoc(newPhotoRef, photoData);
-  
-  return {
-    id: newPhotoRef.id,
-    ...photoData,
-    uploadDate: Timestamp.now(),
-    lastModified: Timestamp.now(),
-  };
+  try {
+    // Resize image before upload
+    const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
+    
+    // Generate a unique filename
+    const fileName = `${Date.now()}_${file.name}`;
+    const storagePath = `users/${userId}/projects/${projectId}/photos/${fileName}`;
+    const storageRef = ref(storage, storagePath);
+    
+    // Upload to Firebase Storage
+    await uploadBytes(storageRef, resizedImage);
+    const imageUrl = await getDownloadURL(storageRef);
+    
+    // Create photo document in Firestore
+    const photosRef = getPhotosRef(projectId);
+    const now = serverTimestamp();
+    const photoData = {
+      name: name || file.name,
+      areaId,
+      projectId,
+      userId,
+      imageUrl,
+      storagePath,
+      uploadDate: now,
+      lastModified: now
+    };
+    
+    const newPhotoRef = doc(photosRef);
+    await setDoc(newPhotoRef, photoData);
+    
+    // Return the ID of the newly created photo
+    return newPhotoRef.id;
+  } catch (error) {
+    console.error("Error uploading photo:", error);
+    throw new Error("Failed to upload photo. Please try again.");
+  }
 }
 
 export async function updatePhoto(projectId: string, photoId: string, name: string): Promise<void> {
