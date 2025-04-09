@@ -57,6 +57,8 @@ export default function UploadPage() {
   const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const preSelectedAreaId = searchParams.get('areaId') || '';
   
+  console.log("Upload page - preselected area ID:", preSelectedAreaId);
+  
   // Get previous page to return to
   const goBack = () => {
     if (preSelectedAreaId) {

@@ -216,6 +216,7 @@ export default function AreaDetailPage() {
         <Button 
           onClick={() => {
             // Navigate to upload page with pre-selected area
+            console.log("Navigating to upload with areaId:", areaId);
             navigate(`/upload?areaId=${areaId}`);
           }}
         >
@@ -231,7 +232,10 @@ export default function AreaDetailPage() {
             Add photos to get started with this area
           </p>
           <Button 
-            onClick={() => navigate(`/upload?areaId=${areaId}`)}
+            onClick={() => {
+              console.log("Navigating to upload with areaId from empty state:", areaId);
+              navigate(`/upload?areaId=${areaId}`);
+            }}
             variant="outline"
             size="lg"
             className="flex items-center gap-2"
