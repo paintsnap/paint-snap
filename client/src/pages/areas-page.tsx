@@ -482,7 +482,7 @@ ${indexUrl}
             Manage your areas
           </p>
         </div>
-        <Button onClick={() => setIsAddAreaDialogOpen(true)}>
+        <Button onClick={() => setIsAddAreaDialogOpen(true)} className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90">
           <Plus className="w-4 h-4 mr-2" />
           Add Area
         </Button>
@@ -490,12 +490,12 @@ ${indexUrl}
       
       {areasList.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Home className="w-12 h-12 text-muted-foreground mb-4" />
+          <Home className="w-12 h-12 text-[var(--color-accent)] mb-4" />
           <h3 className="text-lg font-medium">No areas yet</h3>
           <p className="text-muted-foreground mb-4">
             Create your first area to start organizing your photos
           </p>
-          <Button onClick={() => setIsAddAreaDialogOpen(true)}>
+          <Button onClick={() => setIsAddAreaDialogOpen(true)} className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90">
             <Plus className="w-4 h-4 mr-2" />
             Add Area
           </Button>
@@ -503,13 +503,13 @@ ${indexUrl}
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Upload Card */}
-          <Card className="overflow-hidden hover:shadow-md transition-shadow border-dashed border-2 border-muted-foreground/30">
+          <Card className="overflow-hidden hover:shadow-md transition-shadow border-dashed border-2 border-[var(--color-accent)]/30 hover:border-[var(--color-accent)]/70">
             <div 
               className="cursor-pointer h-full flex flex-col items-center justify-center p-6"
               onClick={() => navigate('/upload')}
             >
-              <div className="rounded-full bg-primary/10 p-4 mb-4">
-                <Plus className="w-8 h-8 text-primary" />
+              <div className="rounded-full bg-[var(--color-accent)]/20 p-4 mb-4">
+                <Plus className="w-8 h-8 text-[var(--color-accent)]" />
               </div>
               <h3 className="text-lg font-medium mb-1">Add New Photo</h3>
               <p className="text-muted-foreground text-center">
@@ -532,7 +532,7 @@ ${indexUrl}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Home className="w-12 h-12 text-muted-foreground" />
+                    <Home className="w-12 h-12 text-[var(--color-accent)]" />
                   )}
                 </div>
                 <CardHeader>
@@ -603,7 +603,11 @@ ${indexUrl}
                 <Button type="button" variant="outline" onClick={() => setIsAddAreaDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreatingArea}>
+                <Button 
+                  type="submit" 
+                  disabled={isCreatingArea}
+                  className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90"
+                >
                   {isCreatingArea ? (
                     <>
                       <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
@@ -647,7 +651,11 @@ ${indexUrl}
                 <Button type="button" variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isUpdatingArea}>
+                <Button 
+                  type="submit" 
+                  disabled={isUpdatingArea}
+                  className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90"
+                >
                   {isUpdatingArea ? (
                     <>
                       <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
