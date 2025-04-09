@@ -37,11 +37,18 @@ import {
 import { ChevronLeft, MoreVertical, Image, Tag } from "lucide-react";
 
 export default function AreaDetailPage() {
+  console.log("AreaDetailPage component rendering");
+  
   const { profile } = useAuth();
+  console.log("Profile in AreaDetailPage:", profile);
+  
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [, params] = useRoute("/areas/:id");
+  const [match, params] = useRoute("/areas/:id");
+  console.log("Route match:", match, "params:", params);
+  
   const areaId = params?.id ? parseInt(params.id) : null;
+  console.log("Parsed areaId:", areaId);
   
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWithTags | null>(null);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
@@ -65,13 +72,7 @@ export default function AreaDetailPage() {
     error: photosError 
   } = useQuery<PhotoWithTags[]>({ 
     queryKey: [`/api/areas/${areaId}/photos`],
-    enabled: !!areaId && !!profile,
-    onSuccess: (data) => {
-      console.log("Area photos loaded successfully:", data);
-    },
-    onError: (err) => {
-      console.error("Error loading area photos:", err);
-    }
+    enabled: !!areaId && !!profile
   });
   
   // Query to get all areas for moving photos

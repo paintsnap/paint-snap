@@ -12,8 +12,19 @@ export function ProtectedRoute({
   const { profile, isLoading } = useAuth();
   const [location] = useLocation();
   
-  // Only apply the protection if we're actually on this route
-  const isRouteActive = location === path || location.startsWith(`${path}/`);
+  // Check if the current path matches our route pattern
+  const isRouteActive = (() => {
+    // For routes with parameters like '/areas/:id'
+    if (path.includes(':')) {
+      // Extract the base path (e.g., '/areas/' from '/areas/:id')
+      const basePath = path.split(':')[0];
+      return location.startsWith(basePath);
+    }
+    // For exact routes or routes with potential children
+    return location === path || location.startsWith(`${path}/`);
+  })();
+  
+  console.log(`Protected route check: Path=${path}, Location=${location}, isActive=${isRouteActive}`);
 
   return (
     <Route path={path}>

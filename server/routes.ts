@@ -62,7 +62,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/areas", requireAuth, async (req, res) => {
     try {
       const userId = req.session!.userId!;
+      console.log(`Getting areas for user: ${userId}`);
       const areas = await storage.getAreas(userId);
+      console.log(`Areas returned: ${areas.length}`);
+      console.log('Areas data:', JSON.stringify(areas, null, 2));
       res.json(areas);
     } catch (error) {
       console.error("Error fetching areas:", error);
@@ -74,21 +77,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/areas/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
+      console.log(`Getting specific area with ID: ${id}`);
+      
       if (isNaN(id)) {
+        console.log('Invalid area ID parameter');
         return res.status(400).json({ message: "Invalid area ID" });
       }
 
       const area = await storage.getAreaById(id);
+      console.log(`Area found:`, area);
+      
       if (!area) {
+        console.log(`Area with ID ${id} not found`);
         return res.status(404).json({ message: "Area not found" });
       }
       
       // Check if the user has access to this area
       const userId = req.session!.userId!;
+      console.log(`User ID from session: ${userId}, Area user ID: ${area.userId}`);
+      
       if (area.userId !== userId) {
+        console.log(`User ${userId} doesn't have permission to access area ${id}`);
         return res.status(403).json({ message: "You don't have permission to access this area" });
       }
 
+      console.log('Sending area data to client');
       res.json(area);
     } catch (error) {
       console.error("Error fetching area:", error);
