@@ -34,7 +34,7 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
-import { Home, MoreVertical, Plus, Upload, Camera } from "lucide-react";
+import { Home, MoreVertical, Plus, Upload, Camera, CloudOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -94,7 +94,8 @@ export default function AreasPage() {
     data: areas = [], 
     isLoading: areasLoading, 
     error,
-    refetch 
+    refetch,
+    isUsingFallback 
   } = useAreas(currentProject?.id || "");
   
   // Combined loading state
@@ -241,7 +242,15 @@ export default function AreasPage() {
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
           <h2 className="text-lg font-semibold mb-2">
-            {isConnectionError ? "Connection Issue" : "Error Loading Areas"}
+            <div className="flex items-center">
+              {isConnectionError ? "Connection Issue" : "Error Loading Areas"}
+              {isConnectionError && (
+                <div className="ml-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full flex items-center">
+                  <CloudOff className="h-3 w-3 mr-1" />
+                  <span>Fallback Mode</span>
+                </div>
+              )}
+            </div>
           </h2>
           <p className="mb-4">
             {isConnectionError 
@@ -305,10 +314,20 @@ export default function AreasPage() {
     <div className="container mx-auto p-4 pb-20">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">
-            {currentProject?.name || "Your Project"}
-          </h1>
-          <p className="text-muted-foreground">Manage your areas</p>
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold">
+              {currentProject?.name || "Your Project"}
+            </h1>
+            {isUsingFallback && (
+              <div className="ml-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full flex items-center">
+                <span className="mr-1">Local Mode</span>
+                <CloudOff className="h-3 w-3" />
+              </div>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {isUsingFallback ? "Using local database (Firebase unavailable)" : "Manage your areas"}
+          </p>
         </div>
         <Button onClick={() => setIsAddAreaDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />

@@ -126,7 +126,7 @@ function useFirebaseData<T>(
       isMounted = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencies);
+  }, [...dependencies, refetchTrigger]);
   
   return { data, isLoading, error, refetch };
 }
@@ -147,14 +147,51 @@ export function useProjects() {
 // Hook for fetching areas with photo counts
 export function useAreas(projectId: string) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   
-  return useFirebaseData<AreaWithPhotos[]>(
+  const result = useFirebaseData<AreaWithPhotos[]>(
     async () => {
       if (!user || !projectId) return [];
-      return await getAreasWithPhotos(projectId, user.uid);
+      
+      try {
+        // First try to get data from Firebase
+        const areas = await getAreasWithPhotos(projectId, user.uid);
+        setIsUsingFallback(false);
+        return areas;
+      } catch (error) {
+        console.error("Error fetching areas from Firebase, falling back to server:", error);
+        
+        // If Firebase fails, fallback to Replit database
+        setIsUsingFallback(true);
+        
+        try {
+          // Import is inside the function to avoid circular dependencies
+          const { fetchAreasFromServer } = await import('../lib/fallback-client');
+          const serverAreas = await fetchAreasFromServer();
+          
+          if (serverAreas.length > 0 && !isUsingFallback) {
+            toast({
+              title: "Using Local Data",
+              description: "Firebase is unavailable. Using local database instead.",
+              variant: "default"
+            });
+          }
+          
+          return serverAreas;
+        } catch (fallbackError) {
+          console.error("Error in fallback:", fallbackError);
+          throw error; // Throw the original error
+        }
+      }
     },
     [projectId, user?.uid]
   );
+  
+  return {
+    ...result,
+    isUsingFallback
+  };
 }
 
 // Hook for fetching photos by area
@@ -171,38 +208,140 @@ export function usePhotosByArea(projectId: string, areaId: string) {
 // Hook for fetching all photos in a project
 export function useAllPhotos(projectId: string) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   
-  return useFirebaseData<PhotoWithTags[]>(
+  const result = useFirebaseData<PhotoWithTags[]>(
     async () => {
       if (!user || !projectId) return [];
-      return await getPhotosWithTagCount(projectId, [where("userId", "==", user.uid)]);
+      
+      try {
+        // First try to get data from Firebase
+        const photos = await getPhotosWithTagCount(projectId, [where("userId", "==", user.uid)]);
+        setIsUsingFallback(false);
+        return photos;
+      } catch (error) {
+        console.error("Error fetching photos from Firebase, falling back to server:", error);
+        
+        // If Firebase fails, fallback to Replit database
+        setIsUsingFallback(true);
+        
+        try {
+          // Import is inside the function to avoid circular dependencies
+          const { fetchPhotosFromServer } = await import('../lib/fallback-client');
+          const serverPhotos = await fetchPhotosFromServer();
+          
+          if (serverPhotos.length > 0 && !isUsingFallback) {
+            toast({
+              title: "Using Local Data",
+              description: "Firebase is unavailable. Using local database instead.",
+              variant: "default"
+            });
+          }
+          
+          return serverPhotos;
+        } catch (fallbackError) {
+          console.error("Error in fallback:", fallbackError);
+          throw error; // Throw the original error
+        }
+      }
     },
     [projectId, user?.uid]
   );
+  
+  return {
+    ...result,
+    isUsingFallback
+  };
 }
 
 // Hook for fetching a single photo with its tags
 export function usePhotoWithTags(projectId: string, photoId: string) {
-  return useFirebaseData<{ photo: Photo, tags: Tag[] } | null>(
+  const { toast } = useToast();
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  
+  const result = useFirebaseData<{ photo: Photo, tags: Tag[] } | null>(
     async () => {
       if (!projectId || !photoId) return null;
-      return await getPhotoWithTags(projectId, photoId);
+      
+      try {
+        // First try to get data from Firebase
+        const photoData = await getPhotoWithTags(projectId, photoId);
+        setIsUsingFallback(false);
+        return photoData;
+      } catch (error) {
+        console.error("Error fetching photo with tags from Firebase, trying fallback:", error);
+        
+        // If Firebase fails, attempt fallback (though this is less complete for individual photos)
+        setIsUsingFallback(true);
+        
+        if (!isUsingFallback) {
+          toast({
+            title: "Using Local Data",
+            description: "Firebase is unavailable. Some photo details may be limited.",
+            variant: "default"
+          });
+        }
+        
+        // For individual photos, we might have limited fallback options
+        throw error; // Still throw since our current fallback doesn't handle individual photos well
+      }
     },
     [projectId, photoId]
   );
+  
+  return {
+    ...result,
+    isUsingFallback
+  };
 }
 
 // Hook for fetching the default project
 export function useDefaultProject() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   
-  return useFirebaseData<Project | null>(
+  const result = useFirebaseData<Project | null>(
     async () => {
       if (!user) return null;
       
-      const projects = await getUserProjects(user.uid);
-      return projects.find(project => project.isDefault) || (projects.length > 0 ? projects[0] : null);
+      try {
+        // First try to get data from Firebase
+        const projects = await getUserProjects(user.uid);
+        setIsUsingFallback(false);
+        return projects.find(project => project.isDefault) || (projects.length > 0 ? projects[0] : null);
+      } catch (error) {
+        console.error("Error fetching projects from Firebase, falling back to default:", error);
+        
+        // If Firebase fails, fallback to local default project
+        setIsUsingFallback(true);
+        
+        try {
+          // Import is inside the function to avoid circular dependencies
+          const { getDefaultProject } = await import('../lib/fallback-client');
+          const defaultProject = await getDefaultProject();
+          
+          if (!isUsingFallback) {
+            toast({
+              title: "Using Local Data",
+              description: "Firebase is unavailable. Using local project instead.",
+              variant: "default"
+            });
+          }
+          
+          return defaultProject;
+        } catch (fallbackError) {
+          console.error("Error in fallback:", fallbackError);
+          throw error; // Throw the original error
+        }
+      }
     },
     [user?.uid]
   );
+  
+  return {
+    ...result,
+    isUsingFallback
+  };
 }
