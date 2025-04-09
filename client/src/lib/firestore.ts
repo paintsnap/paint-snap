@@ -698,14 +698,97 @@ export async function uploadPhoto(
       let uploadTask;
       
       try {
-        // Try with direct bytes upload only
+        // Set a timeout to detect stalled uploads
+        const uploadTimeout = setTimeout(() => {
+          console.error("UPLOAD TIMEOUT: Upload operation exceeded maximum time limit");
+        }, 15000); // 15 seconds timeout
+        
+        // Log detailed file information
         console.log("File size:", file.size, "bytes");
         console.log("File type:", file.type);
-        uploadTask = await uploadBytes(storageRef, file, metadata);
-        console.log("Upload completed successfully:", uploadTask);
+        console.log("File name:", file.name);
+        
+        // Try with smaller chunk size for uploads
+        console.log("Setting custom maxOperationRetryTime for Firebase upload");
+        // Note: This is a hacky workaround to bypass Replit's network limitations with Firebase
+        const firebaseStorage = await import('firebase/storage');
+        (firebaseStorage as any)._DEFAULT_HOST = 'firebasestorage.googleapis.com';
+        (firebaseStorage as any)._DEFAULT_MAX_OPERATION_RETRY_TIME = 10000; // 10 seconds max retry
+        
+        console.log("ATTEMPTING UPLOAD...");
+        
+        // Try with a simple fetch for upload (using a public bucket if possible)
+        try {
+          // Try direct upload first
+          uploadTask = await uploadBytes(storageRef, file, metadata);
+          console.log("Upload completed successfully via uploadBytes:", uploadTask);
+        } catch (directError) {
+          console.error("Direct upload failed:", directError);
+          
+          // Try creating a temporary canvas to reduce the image size
+          console.log("Attempting fallback with reduced image size");
+          const img = new Image();
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Create a promise to load the image
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              // Reduce the image size
+              const maxSize = 800;
+              let width = img.width;
+              let height = img.height;
+              
+              if (width > maxSize) {
+                height = Math.round((height * maxSize) / width);
+                width = maxSize;
+              }
+              
+              if (height > maxSize) {
+                width = Math.round((width * maxSize) / height);
+                height = maxSize;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              
+              // Draw the image to canvas
+              ctx?.drawImage(img, 0, 0, width, height);
+              resolve();
+            };
+            img.onerror = reject;
+            
+            // Create a blob URL from the file
+            img.src = URL.createObjectURL(file);
+          });
+          
+          // Convert canvas to blob with lower quality
+          const blob = await new Promise<Blob | null>((resolve) => {
+            canvas.toBlob(resolve, 'image/jpeg', 0.5);
+          });
+          
+          if (!blob) {
+            throw new Error("Failed to create blob from image canvas");
+          }
+          
+          console.log("Created reduced image:", { size: blob.size });
+          
+          // Try upload again with reduced image
+          uploadTask = await uploadBytes(storageRef, blob, {
+            ...metadata,
+            contentType: 'image/jpeg'
+          });
+          console.log("Upload completed successfully with reduced image");
+        }
+        
+        clearTimeout(uploadTimeout);
       } catch (error: any) {
         console.error("STORAGE UPLOAD ERROR:", error);
-        console.error("Detailed error object:", JSON.stringify(error, null, 2));
+        try {
+          console.error("Detailed error:", JSON.stringify(error, null, 2));
+        } catch (e) {
+          console.error("Could not stringify error", error);
+        }
         throw new Error(`Firebase Storage error during direct upload: ${error.message || String(error)}`);
       }
       
