@@ -237,34 +237,36 @@ export default function UploadPage() {
                 )}
               </div>
               
-              {/* Area Selection */}
-              <FormField
-                control={form.control}
-                name="areaId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Area</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an area" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {areas.map((area) => (
-                          <SelectItem key={area.id} value={area.id.toString()}>
-                            {area.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Area Selection - Only show if not pre-selected */}
+              {!preSelectedAreaId && (
+                <FormField
+                  control={form.control}
+                  name="areaId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Area</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an area" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {areas.map((area) => (
+                            <SelectItem key={area.id} value={area.id.toString()}>
+                              {area.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               {/* No Photo Name field required */}
               

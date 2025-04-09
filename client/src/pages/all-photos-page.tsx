@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Area, PhotoWithTags } from "@shared/schema";
+import { useProject } from "@/hooks/use-project";
+import { useAllPhotos, useAreas } from "@/hooks/use-firebase-data";
+import { movePhoto, deletePhoto } from "@/lib/firestore";
+// Use Firebase's PhotoWithTags type instead of schema's
+import { PhotoWithTags, AreaWithPhotos } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { 
@@ -35,7 +37,9 @@ import {
 import { MoreVertical, Image, Tag } from "lucide-react";
 
 export default function AllPhotosPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const { currentProject } = useProject();
+  const projectId = currentProject?.id || '';
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
@@ -43,90 +47,79 @@ export default function AllPhotosPage() {
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [targetAreaId, setTargetAreaId] = useState<string>("");
+  const [isMoving, setIsMoving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  // Query to fetch all photos
-  const { 
-    data: photos = [], 
-    isLoading: isPhotosLoading, 
-    error: photosError 
-  } = useQuery<PhotoWithTags[]>({ 
-    queryKey: ["/api/photos"],
-    enabled: !!profile,
-  });
+  // Fetch photos and areas using Firebase hooks with explicit user filtering
+  const { data: photos = [], isLoading: isPhotosLoading, error: photosError, refetch: refetchPhotos } = 
+    useAllPhotos(projectId);
   
-  // Query to get all areas for moving photos
-  const { 
-    data: areas = [], 
-    isLoading: isAreasLoading 
-  } = useQuery<Area[]>({ 
-    queryKey: ["/api/areas"],
-    enabled: !!profile,
-  });
+  const { data: areas = [], isLoading: isAreasLoading, refetch: refetchAreas } = 
+    useAreas(projectId);
+    
+  // Null safety for rendering
+  const safePhotos = photos || [];
+  const safeAreas = areas || [];
   
-  // Mutation to move a photo to a different area
-  const movePhotoMutation = useMutation({
-    mutationFn: async ({ photoId, areaId }: { photoId: number; areaId: number }) => {
-      const res = await apiRequest("PATCH", `/api/photos/${photoId}/move`, { areaId });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+  // Handle moving a photo
+  const handleMoveConfirm = async () => {
+    if (!selectedPhoto || !targetAreaId || !user || !projectId) return;
+    
+    setIsMoving(true);
+    try {
+      await movePhoto(projectId, selectedPhoto.id, targetAreaId);
+      
       toast({
         title: "Photo moved",
         description: "The photo has been moved to another area.",
       });
+      
+      // Refetch the data
+      refetchPhotos();
+      refetchAreas();
+      
       setIsMoveDialogOpen(false);
       setSelectedPhoto(null);
       setTargetAreaId("");
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         title: "Failed to move photo",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsMoving(false);
+    }
+  };
   
-  // Mutation to delete a photo
-  const deletePhotoMutation = useMutation({
-    mutationFn: async (photoId: number) => {
-      const res = await apiRequest("DELETE", `/api/photos/${photoId}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+  // Handle deleting a photo
+  const handleDeleteConfirm = async () => {
+    if (!selectedPhoto || !user || !projectId) return;
+    
+    setIsDeleting(true);
+    try {
+      await deletePhoto(projectId, selectedPhoto.id);
+      
       toast({
         title: "Photo deleted",
         description: "The photo has been permanently deleted.",
       });
+      
+      // Refetch the data
+      refetchPhotos();
+      refetchAreas();
+      
       setIsDeleteDialogOpen(false);
       setSelectedPhoto(null);
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         title: "Failed to delete photo",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
-  
-  // Handle moving a photo
-  const handleMoveConfirm = () => {
-    if (!selectedPhoto || !targetAreaId) return;
-    
-    movePhotoMutation.mutate({
-      photoId: selectedPhoto.id,
-      areaId: parseInt(targetAreaId),
-    });
-  };
-  
-  // Handle deleting a photo
-  const handleDeleteConfirm = () => {
-    if (!selectedPhoto) return;
-    
-    deletePhotoMutation.mutate(selectedPhoto.id);
+    } finally {
+      setIsDeleting(false);
+    }
   };
   
   // Open move dialog for a photo
@@ -142,7 +135,7 @@ export default function AllPhotosPage() {
   };
   
   // Navigate to photo detail view
-  const handlePhotoClick = (photoId: number) => {
+  const handlePhotoClick = (photoId: string) => {
     navigate(`/photos/${photoId}`);
   };
   
@@ -160,7 +153,7 @@ export default function AllPhotosPage() {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load photos: {photosError.message}
+          Failed to load photos: {photosError}
         </div>
       </div>
     );
@@ -173,7 +166,7 @@ export default function AllPhotosPage() {
         <p className="text-muted-foreground">View all photos across your areas</p>
       </div>
       
-      {photos.length === 0 ? (
+      {safePhotos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Image className="w-12 h-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No photos yet</h3>
@@ -186,7 +179,7 @@ export default function AllPhotosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {photos.map((photo) => (
+          {safePhotos.map((photo) => (
             <Card key={photo.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div 
                 className="cursor-pointer"
@@ -260,8 +253,8 @@ export default function AllPhotosPage() {
                 <SelectValue placeholder="Select an area" />
               </SelectTrigger>
               <SelectContent>
-                {areas
-                  .filter(a => selectedPhoto && a.id !== selectedPhoto.areaId)
+                {safeAreas
+                  .filter(a => selectedPhoto && a.id !== selectedPhoto.areaId.toString())
                   .map((area) => (
                     <SelectItem key={area.id} value={area.id.toString()}>
                       {area.name}
@@ -276,9 +269,9 @@ export default function AllPhotosPage() {
             </Button>
             <Button 
               onClick={handleMoveConfirm}
-              disabled={!targetAreaId || movePhotoMutation.isPending}
+              disabled={!targetAreaId || isMoving}
             >
-              {movePhotoMutation.isPending ? (
+              {isMoving ? (
                 <>
                   <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                   Moving...
@@ -308,9 +301,9 @@ export default function AllPhotosPage() {
             <Button 
               variant="destructive" 
               onClick={handleDeleteConfirm}
-              disabled={deletePhotoMutation.isPending}
+              disabled={isDeleting}
             >
-              {deletePhotoMutation.isPending ? (
+              {isDeleting ? (
                 <>
                   <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                   Deleting...
