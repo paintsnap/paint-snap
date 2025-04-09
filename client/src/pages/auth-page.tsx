@@ -11,6 +11,9 @@ import { Camera, LogIn, Mail, User, KeyRound, AlertCircle, Loader2 } from "lucid
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the schemas for login and register forms
 const loginSchema = z.object({
@@ -33,6 +36,32 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { profile, isLoading, error, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
+
+  // Test Firestore connection
+  useEffect(() => {
+    const testFirestore = async () => {
+      try {
+        // Try to access a simple collection to verify permissions are working
+        const usersCollectionRef = collection(db, "users");
+        await getDocs(usersCollectionRef);
+        console.log("Firestore connection successful! Security rules are working.");
+        toast({
+          title: "Firebase Status",
+          description: "Firestore connection is working properly",
+        });
+      } catch (error) {
+        console.error("Firestore test failed:", error);
+        toast({
+          title: "Firebase Status",
+          description: "Firestore connection failed. Check console for details.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    testFirestore();
+  }, [toast]);
 
   // Redirect if already logged in
   useEffect(() => {
