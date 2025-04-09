@@ -35,7 +35,7 @@ import {
 import { MoreVertical, Image, Tag } from "lucide-react";
 
 export default function AllPhotosPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
@@ -51,7 +51,7 @@ export default function AllPhotosPage() {
     error: photosError 
   } = useQuery<PhotoWithTags[]>({ 
     queryKey: ["/api/photos"],
-    enabled: !!user,
+    enabled: !!profile,
   });
   
   // Query to get all areas for moving photos
@@ -60,7 +60,7 @@ export default function AllPhotosPage() {
     isLoading: isAreasLoading 
   } = useQuery<Area[]>({ 
     queryKey: ["/api/areas"],
-    enabled: !!user,
+    enabled: !!profile,
   });
   
   // Mutation to move a photo to a different area

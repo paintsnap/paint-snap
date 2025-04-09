@@ -145,7 +145,7 @@ function TagDetailsSidebar({
 }
 
 export default function PhotoViewPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [, params] = useRoute("/photos/:id");
@@ -179,7 +179,7 @@ export default function PhotoViewPage() {
     error 
   } = useQuery<PhotoWithTagsDetailed>({ 
     queryKey: [`/api/photos/${photoId}`],
-    enabled: !!photoId && !!user,
+    enabled: !!photoId && !!profile,
   });
   
   // Mutation to create a new tag
@@ -291,7 +291,7 @@ export default function PhotoViewPage() {
   
   // Handle submission of the tag form
   const onSubmitTag = (values: TagFormValues) => {
-    if (!user || !photoId) return;
+    if (!profile || !photoId) return;
     
     const formData = new FormData();
     
@@ -311,7 +311,7 @@ export default function PhotoViewPage() {
       });
     } else if (tagPosition) {
       // Create new tag
-      formData.append("userId", user.id.toString());
+      formData.append("userId", profile.id.toString());
       formData.append("photoId", photoId.toString());
       formData.append("description", values.description);
       formData.append("details", values.details || "");

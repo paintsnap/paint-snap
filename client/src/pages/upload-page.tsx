@@ -44,7 +44,7 @@ const uploadFormSchema = z.object({
 type UploadFormValues = z.infer<typeof uploadFormSchema>;
 
 export default function UploadPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export default function UploadPage() {
     isLoading: isAreasLoading 
   } = useQuery<Area[]>({ 
     queryKey: ["/api/areas"],
-    enabled: !!user,
+    enabled: !!profile,
   });
   
   // Mutation to upload a photo
@@ -120,10 +120,10 @@ export default function UploadPage() {
   
   // Handle form submission
   const onSubmit = async (values: UploadFormValues) => {
-    if (!user) return;
+    if (!profile) return;
     
     const formData = new FormData();
-    formData.append("userId", user.id.toString());
+    formData.append("userId", profile.id.toString());
     formData.append("areaId", values.areaId);
     formData.append("name", values.name);
     formData.append("image", values.imageFile);

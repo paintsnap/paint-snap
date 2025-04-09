@@ -37,7 +37,7 @@ import {
 import { ChevronLeft, MoreVertical, Image, Tag } from "lucide-react";
 
 export default function AreaDetailPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [, params] = useRoute("/areas/:id");
@@ -55,7 +55,7 @@ export default function AreaDetailPage() {
     error: areaError 
   } = useQuery<Area>({ 
     queryKey: [`/api/areas/${areaId}`],
-    enabled: !!areaId && !!user,
+    enabled: !!areaId && !!profile,
   });
   
   // Query to fetch photos for the current area
@@ -65,7 +65,7 @@ export default function AreaDetailPage() {
     error: photosError 
   } = useQuery<PhotoWithTags[]>({ 
     queryKey: [`/api/areas/${areaId}/photos`],
-    enabled: !!areaId && !!user,
+    enabled: !!areaId && !!profile,
   });
   
   // Query to get all areas for moving photos
@@ -74,7 +74,7 @@ export default function AreaDetailPage() {
     isLoading: isAreasLoading 
   } = useQuery<Area[]>({ 
     queryKey: ["/api/areas"],
-    enabled: !!user,
+    enabled: !!profile,
   });
   
   // Mutation to move a photo to a different area
