@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, useLocation } from "wouter";
 
 export function ProtectedRoute({
   path,
@@ -9,25 +9,28 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
+  const { profile, isLoading } = useAuth();
+  const [location] = useLocation();
+  
+  // Only apply the protection if we're actually on this route
+  const isRouteActive = location === path || location.startsWith(`${path}/`);
 
-  if (isLoading) {
-    return (
-      <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Route>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Route path={path}>
-        <Redirect to="/auth" />
-      </Route>
-    );
-  }
-
-  return <Route path={path} component={Component} />;
+  return (
+    <Route path={path}>
+      {isRouteActive ? (
+        isLoading ? (
+          // Show loading spinner while checking auth
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : !profile ? (
+          // Redirect to auth page if not authenticated
+          <Redirect to="/auth" />
+        ) : (
+          // Render the protected component if authenticated
+          <Component />
+        )
+      ) : null}
+    </Route>
+  );
 }

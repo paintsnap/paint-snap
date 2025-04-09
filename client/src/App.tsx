@@ -62,31 +62,41 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       
       {/* Protected routes - require login */}
-      <ProtectedRoute path="/" component={() => 
-        <AppLayout>
-          <AreasPage />
-        </AppLayout>
-      } />
-      <ProtectedRoute path="/upload" component={() => 
-        <AppLayout>
-          <UploadPage />
-        </AppLayout>
-      } />
-      <ProtectedRoute path="/photos" component={() => 
-        <AppLayout>
-          <AllPhotosPage />
-        </AppLayout>
-      } />
-      <ProtectedRoute path="/areas/:id" component={() => 
-        <AppLayout>
-          <AreaDetailPage />
-        </AppLayout>
-      } />
-      <ProtectedRoute path="/photos/:id" component={() => 
-        <AppLayout>
-          <PhotoViewPage />
-        </AppLayout>
-      } />
+      <ProtectedRoute path="/" component={() => {
+        return (
+          <AppLayout>
+            <AreasPage />
+          </AppLayout>
+        );
+      }} />
+      <ProtectedRoute path="/upload" component={() => {
+        return (
+          <AppLayout>
+            <UploadPage />
+          </AppLayout>
+        );
+      }} />
+      <ProtectedRoute path="/photos" component={() => {
+        return (
+          <AppLayout>
+            <AllPhotosPage />
+          </AppLayout>
+        );
+      }} />
+      <ProtectedRoute path="/areas/:id" component={() => {
+        return (
+          <AppLayout>
+            <AreaDetailPage />
+          </AppLayout>
+        );
+      }} />
+      <ProtectedRoute path="/photos/:id" component={() => {
+        return (
+          <AppLayout>
+            <PhotoViewPage />
+          </AppLayout>
+        );
+      }} />
       
       {/* 404 route */}
       <Route component={NotFound} />

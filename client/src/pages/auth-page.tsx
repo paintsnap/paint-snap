@@ -37,10 +37,10 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (profile) {
+    if (profile && !isLoading) {
       setLocation("/");
     }
-  }, [profile, setLocation]);
+  }, [profile, isLoading, setLocation]);
 
   // Setup login form
   const loginForm = useForm<LoginFormValues>({
