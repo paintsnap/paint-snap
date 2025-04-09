@@ -145,7 +145,7 @@ export interface AreaWithPhotos {
 }
 
 export interface UserProfile {
-  id: number;
+  id: string;        // Use string for Firebase UID
   username?: string;
   firebaseUid?: string;
   displayName: string | null;

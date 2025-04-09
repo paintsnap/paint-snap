@@ -32,7 +32,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { profile, isLoading, error, loginLocalUser, registerLocalUser, signInWithGoogle } = useAuth();
+  const { profile, isLoading, error, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -62,14 +62,14 @@ export default function AuthPage() {
 
   // Handle login form submission
   const onLoginSubmit = async (values: LoginFormValues) => {
-    await loginLocalUser(values.email, values.password);
+    await signInWithEmail(values.email, values.password);
   };
 
   // Handle register form submission
   const onRegisterSubmit = async (values: RegisterFormValues) => {
-    // Generate a username from the email (use part before @)
-    const username = values.email.split('@')[0];
-    await registerLocalUser(username, values.email, values.password);
+    // Generate a display name from the email (use part before @)
+    const displayName = values.email.split('@')[0];
+    await signUpWithEmail(values.email, values.password, displayName);
   };
 
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
