@@ -692,13 +692,28 @@ export async function uploadPhoto(
         }
       };
       
-      // Upload the file to Firebase Storage
-      const uploadTask = await uploadBytes(storageRef, file, metadata);
-      console.log("Upload completed successfully:", uploadTask);
+      // Upload the file to Firebase Storage with more detailed error handling
+      console.log("About to upload file to Firebase Storage...");
+      let uploadTask;
+      try {
+        uploadTask = await uploadBytes(storageRef, file, metadata);
+        console.log("Upload completed successfully:", uploadTask);
+      } catch (error: any) {
+        console.error("STORAGE UPLOAD ERROR:", error);
+        // Rethrow with more details
+        throw new Error(`Firebase Storage error during upload: ${error.message || String(error)}`);
+      }
       
-      // Get the download URL
-      const imageUrl = await getDownloadURL(storageRef);
-      console.log("Download URL obtained:", imageUrl);
+      // Get the download URL with better error handling
+      console.log("Attempting to get download URL...");
+      let imageUrl;
+      try {
+        imageUrl = await getDownloadURL(storageRef);
+        console.log("Download URL obtained:", imageUrl);
+      } catch (error: any) {
+        console.error("DOWNLOAD URL ERROR:", error);
+        throw new Error(`Error getting download URL: ${error.message || String(error)}`);
+      }
       
       // Current time for default values if serverTimestamp fails
       const timestamp = new Date().toISOString();
@@ -741,21 +756,25 @@ Suggested Firestore Rules:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read/write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Allow authenticated users to read and write all data
+    // This is a simple rule for development - you may want to restrict access for production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
     
-    // Allow authenticated users to manage projects
-    match /projects/{projectId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Allow access to areas, photos, and tags within projects
-      match /{collection}/{docId} {
-        allow read, write: if request.auth != null;
-      }
-    }
+    // More specific rules if needed:
+    // match /users/{userId} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    // 
+    // match /projects/{projectId} {
+    //   allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    //   allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    //   
+    //   match /{collection}/{docId} {
+    //     allow read, write: if request.auth != null;
+    //   }
+    // }
   }
 }
           `);
@@ -780,6 +799,7 @@ service cloud.firestore {
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Allow authenticated users to read and write all storage files
     match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }
@@ -1089,35 +1109,10 @@ export async function logFirebasePermissions() {
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Allow authenticated users to read and write to projects they own
-    match /projects/{projectId} {
-      allow read, write, create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Allow authenticated users to read and write to areas in their projects
-      match /areas/{areaId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-      }
-      
-      // Allow authenticated users to read and write to photos in their projects
-      match /photos/{photoId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        
-        // Allow authenticated users to read and write to tags for their photos
-        match /tags/{tagId} {
-          allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        }
-      }
-    }
-    
-    // For testing permissions
-    match /permissions_test/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Allow all authenticated users to read and write all data
+    // This is a simple rule for development - you may want to restrict access for production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

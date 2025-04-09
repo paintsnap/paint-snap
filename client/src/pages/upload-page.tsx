@@ -129,6 +129,18 @@ export default function UploadPage() {
     }
     
     setIsUploading(true);
+    
+    // Set a timeout to prevent indefinite loading state
+    const uploadTimeout = setTimeout(() => {
+      if (isUploading) {
+        setIsUploading(false);
+        toast({
+          title: "Upload timeout",
+          description: "The upload is taking too long. Please check your connection and try again.",
+          variant: "destructive",
+        });
+      }
+    }, 30000); // 30 seconds timeout
     try {
       const photoFile = values.imageFile;
       const areaId = values.areaId || preSelectedAreaId;
@@ -203,6 +215,7 @@ export default function UploadPage() {
         }
       }
     } finally {
+      clearTimeout(uploadTimeout);
       setIsUploading(false);
     }
   };
