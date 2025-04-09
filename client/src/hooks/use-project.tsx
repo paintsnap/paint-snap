@@ -46,13 +46,58 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         description: "Project created successfully",
       });
       return newProject;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create project",
-        variant: "destructive"
-      });
+      
+      // Special handling for security rules issues
+      if (error.code === 'permission-denied') {
+        // Suggest Firebase security rules
+        console.error(`
+⚠️ FIREBASE SECURITY RULES ISSUE ⚠️
+==================================
+
+Your Firebase security rules need to be updated to allow writing to the 'projects' collection.
+Go to the Firebase Console > Firestore Database > Rules and use these rules:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      match /areas/{areaId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+      }
+      
+      match /photos/{photoId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+        
+        match /tags/{tagId} {
+          allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+        }
+      }
+    }
+  }
+}
+`);
+        
+        toast({
+          title: "Security Rules Issue",
+          description: "Your Firebase security rules need to be updated. See console for details.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create project: " + (error.message || "Unknown error"),
+          variant: "destructive"
+        });
+      }
       return null;
     }
   };

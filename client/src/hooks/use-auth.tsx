@@ -193,11 +193,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Try to create a default project for the new user
         try {
-          await createDefaultProject(firebaseUser);
-          console.log("Default project created for new user");
-        } catch (projectError) {
+          const defaultProject = await createDefaultProject(firebaseUser);
+          console.log("Default project created for new user:", defaultProject.id);
+          
+          // Helpful success message
+          toast({
+            title: "Setup Complete",
+            description: "Default project created and ready to use"
+          });
+        } catch (projectError: any) {
           console.error("Error creating default project:", projectError);
-          // Don't throw error - account is still created
+          
+          // Show specific error for security rules issues
+          if (projectError.code === 'permission-denied') {
+            console.error("⚠️ FIREBASE SECURITY RULES ISSUE: Make sure your Firestore rules allow write access to authenticated users");
+            toast({
+              title: "Security Rules Issue",
+              description: "Your Firebase security rules may need updating. Project creation failed.",
+              variant: "destructive"
+            });
+          }
+          
+          // Don't throw error - account is still created, but alert the user
+          toast({
+            title: "Partial Setup",
+            description: "Account created, but default project setup failed. Some features may be limited.",
+            variant: "destructive"
+          });
         }
       } catch (firestoreError) {
         console.error("Error creating user profile in Firestore:", firestoreError);
