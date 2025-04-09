@@ -82,6 +82,12 @@ export default function AreasPage() {
   } = useQuery<AreaWithPhotos[]>({ 
     queryKey: ["/api/areas"],
     enabled: !!profile,
+    onSuccess: (data) => {
+      console.log("Areas loaded successfully:", data);
+    },
+    onError: (err) => {
+      console.error("Error loading areas:", err);
+    }
   });
   
   // Mutation to create a new area

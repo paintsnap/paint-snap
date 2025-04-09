@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,27 +20,27 @@ function BottomNavigation() {
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
       <div className="grid h-full grid-cols-3 mx-auto">
-        <a
+        <Link
           href="/"
           className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted"
         >
           <Home className="w-6 h-6 mb-1 text-primary" />
           <span className="text-sm text-muted-foreground">Home</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/upload"
           className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted"
         >
           <Plus className="w-6 h-6 mb-1 text-primary" />
           <span className="text-sm text-muted-foreground">Add</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/photos"
           className="inline-flex flex-col items-center justify-center px-5 hover:bg-muted"
         >
           <Grid className="w-6 h-6 mb-1 text-primary" />
           <span className="text-sm text-muted-foreground">All</span>
-        </a>
+        </Link>
       </div>
     </div>
   );

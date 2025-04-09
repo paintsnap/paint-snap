@@ -66,6 +66,12 @@ export default function AreaDetailPage() {
   } = useQuery<PhotoWithTags[]>({ 
     queryKey: [`/api/areas/${areaId}/photos`],
     enabled: !!areaId && !!profile,
+    onSuccess: (data) => {
+      console.log("Area photos loaded successfully:", data);
+    },
+    onError: (err) => {
+      console.error("Error loading area photos:", err);
+    }
   });
   
   // Query to get all areas for moving photos
