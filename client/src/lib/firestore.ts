@@ -669,28 +669,74 @@ export async function uploadPhoto(
     // Log permissions before attempting upload
     await logFirebasePermissions();
     
-    // Skip image resizing and just use the original file for troubleshooting
-    console.log("TROUBLESHOOTING: Uploading original file without resizing...");
+    console.log("Preparing minimal image for upload...");
     
-    // Generate a unique filename
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const storagePath = `users/${userId}/projects/${projectId}/photos/${fileName}`;
-    console.log("Storage path:", storagePath);
+    // Create a smaller image for more reliable upload
+    const img = document.createElement('img');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
     
-    // Get storage reference
+    // Set up a promise to load the image
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => {
+        // Scale the image down to a reasonable size
+        const MAX_DIMENSION = 600;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height = Math.round((height * MAX_DIMENSION) / width);
+            width = MAX_DIMENSION;
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width = Math.round((width * MAX_DIMENSION) / height);
+            height = MAX_DIMENSION;
+          }
+        }
+        
+        // Set canvas size and draw image
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve();
+      };
+      img.onerror = reject;
+      
+      // Create a blob URL from the file
+      img.src = URL.createObjectURL(file);
+    });
+    
+    // Convert canvas to blob (jpeg) with very low quality
+    const optimizedBlob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.3); // 30% quality
+    });
+    
+    if (!optimizedBlob) {
+      throw new Error("Failed to create optimized image for upload");
+    }
+    
+    console.log("Image optimized for upload:", { 
+      originalSize: file.size, 
+      optimizedSize: optimizedBlob.size,
+      reduction: `${Math.round((1 - optimizedBlob.size / file.size) * 100)}%` 
+    });
+    
+    // Generate a simple filename with no special chars
+    const fileName = `photo_${Date.now()}.jpg`;
+    const storagePath = `photos/${fileName}`;  // Simplified path structure
+    console.log("Using simplified storage path:", storagePath);
+    
+    // Get storage reference with the simplified path
     const storageRef = ref(storage, storagePath);
     console.log("Storage reference created for path:", storagePath);
     
     try {
-      // Simple direct upload attempt for troubleshooting
+      // Simple direct upload attempt with minimal metadata
       console.log("Starting direct upload attempt...");
       const metadata = {
-        contentType: file.type,
-        customMetadata: {
-          'userId': userId,
-          'projectId': projectId,
-          'areaId': areaId
-        }
+        contentType: 'image/jpeg'
       };
       
       // Upload the file to Firebase Storage directly
@@ -704,24 +750,21 @@ export async function uploadPhoto(
         }, 15000); // 15 seconds timeout
         
         // Log detailed file information
-        console.log("File size:", file.size, "bytes");
-        console.log("File type:", file.type);
-        console.log("File name:", file.name);
+        console.log("File size:", optimizedBlob.size, "bytes");
+        console.log("File type: image/jpeg");
         
-        // Try with smaller chunk size for uploads
+        // Load Firebase storage with reduced timeout
         console.log("Setting custom maxOperationRetryTime for Firebase upload");
-        // Note: This is a hacky workaround to bypass Replit's network limitations with Firebase
         const firebaseStorage = await import('firebase/storage');
-        (firebaseStorage as any)._DEFAULT_HOST = 'firebasestorage.googleapis.com';
-        (firebaseStorage as any)._DEFAULT_MAX_OPERATION_RETRY_TIME = 10000; // 10 seconds max retry
+        (firebaseStorage as any)._DEFAULT_MAX_OPERATION_RETRY_TIME = 5000; // 5 seconds max retry
         
         console.log("ATTEMPTING UPLOAD...");
         
         // Try with a simple fetch for upload (using a public bucket if possible)
         try {
-          // Try direct upload first
-          uploadTask = await uploadBytes(storageRef, file, metadata);
-          console.log("Upload completed successfully via uploadBytes:", uploadTask);
+          // Try direct upload with optimized blob (not original file)
+          uploadTask = await uploadBytes(storageRef, optimizedBlob, metadata);
+          console.log("Upload completed successfully via uploadBytes with optimized blob:", uploadTask);
         } catch (directError) {
           console.error("Direct upload failed:", directError);
           
