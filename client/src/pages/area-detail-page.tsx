@@ -1,8 +1,5 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Area, PhotoWithTags } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import { 
@@ -35,11 +32,28 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { ChevronLeft, MoreVertical, Image, Tag } from "lucide-react";
+import { 
+  useAreas, 
+  usePhotosByArea
+} from "@/hooks/use-firebase-data";
+import { 
+  Area,
+  Photo,
+  movePhoto,
+  deletePhoto
+} from "@/lib/firestore";
+import { useProject } from "@/hooks/use-project";
+
+// Define the PhotoWithTags type to match what comes from Firebase
+interface PhotoWithTags extends Photo {
+  tagCount: number;
+  areaName?: string;
+}
 
 export default function AreaDetailPage() {
   console.log("AreaDetailPage component rendering");
   
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   console.log("Profile in AreaDetailPage:", profile);
   
   const { toast } = useToast();
@@ -47,107 +61,95 @@ export default function AreaDetailPage() {
   const [match, params] = useRoute("/areas/:id");
   console.log("Route match:", match, "params:", params);
   
-  const areaId = params?.id ? parseInt(params.id) : null;
-  console.log("Parsed areaId:", areaId);
+  // Use the ID as a string since Firebase uses string IDs
+  const areaId = params?.id || null;
+  console.log("Area ID:", areaId);
+
+  const { currentProject } = useProject();
+  const projectId = currentProject?.id || '';
   
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWithTags | null>(null);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [targetAreaId, setTargetAreaId] = useState<string>("");
+  const [isMoving, setIsMoving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  // Query to fetch the current area
-  const { 
-    data: area,
-    isLoading: isAreaLoading, 
-    error: areaError 
-  } = useQuery<Area>({ 
-    queryKey: [`/api/areas/${areaId}`],
-    enabled: !!areaId && !!profile,
-  });
+  // Fetch areas and photos using Firebase hooks
+  const { data: areas = [], isLoading: isAreasLoading, error: areasError, refetch: refetchAreas } = 
+    useAreas(projectId);
   
-  // Query to fetch photos for the current area
-  const { 
-    data: photos = [], 
-    isLoading: isPhotosLoading, 
-    error: photosError 
-  } = useQuery<PhotoWithTags[]>({ 
-    queryKey: [`/api/areas/${areaId}/photos`],
-    enabled: !!areaId && !!profile
-  });
+  const { data: photosData = [], isLoading: isPhotosLoading, error: photosError, refetch: refetchPhotos } = 
+    usePhotosByArea(projectId, areaId || '');
+    
+  // Convert photos to PhotoWithTags[]
+  const photos: PhotoWithTags[] = photosData.map(photo => ({
+    ...photo,
+    tagCount: (photo as any).tagCount || 0
+  }));
+
+  // Find current area object
+  const area = areas.find(a => a.id === areaId);
   
-  // Query to get all areas for moving photos
-  const { 
-    data: areas = [], 
-    isLoading: isAreasLoading 
-  } = useQuery<Area[]>({ 
-    queryKey: ["/api/areas"],
-    enabled: !!profile,
-  });
-  
-  // Mutation to move a photo to a different area
-  const movePhotoMutation = useMutation({
-    mutationFn: async ({ photoId, areaId }: { photoId: number; areaId: number }) => {
-      const res = await apiRequest("PATCH", `/api/photos/${photoId}/move`, { areaId });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/areas/${areaId}/photos`] });
+  // Handle moving a photo
+  const handleMoveConfirm = async () => {
+    if (!selectedPhoto || !targetAreaId || !user || !projectId) return;
+
+    setIsMoving(true);
+    try {
+      await movePhoto(projectId, selectedPhoto.id, targetAreaId);
+      
       toast({
         title: "Photo moved",
         description: "The photo has been moved to another area.",
       });
+      
+      // Refetch the data
+      refetchPhotos();
+      refetchAreas();
+      
       setIsMoveDialogOpen(false);
       setSelectedPhoto(null);
       setTargetAreaId("");
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         title: "Failed to move photo",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsMoving(false);
+    }
+  };
   
-  // Mutation to delete a photo
-  const deletePhotoMutation = useMutation({
-    mutationFn: async (photoId: number) => {
-      const res = await apiRequest("DELETE", `/api/photos/${photoId}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/areas/${areaId}/photos`] });
+  // Handle deleting a photo
+  const handleDeleteConfirm = async () => {
+    if (!selectedPhoto || !user || !projectId) return;
+    
+    setIsDeleting(true);
+    try {
+      await deletePhoto(projectId, selectedPhoto.id);
+      
       toast({
         title: "Photo deleted",
         description: "The photo has been permanently deleted.",
       });
+      
+      // Refetch the data
+      refetchPhotos();
+      refetchAreas();
+      
       setIsDeleteDialogOpen(false);
       setSelectedPhoto(null);
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         title: "Failed to delete photo",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
-  
-  // Handle moving a photo
-  const handleMoveConfirm = () => {
-    if (!selectedPhoto || !targetAreaId) return;
-    
-    movePhotoMutation.mutate({
-      photoId: selectedPhoto.id,
-      areaId: parseInt(targetAreaId),
-    });
-  };
-  
-  // Handle deleting a photo
-  const handleDeleteConfirm = () => {
-    if (!selectedPhoto) return;
-    
-    deletePhotoMutation.mutate(selectedPhoto.id);
+    } finally {
+      setIsDeleting(false);
+    }
   };
   
   // Open move dialog for a photo
@@ -163,17 +165,17 @@ export default function AreaDetailPage() {
   };
   
   // Navigate to photo detail view
-  const handlePhotoClick = (photoId: number) => {
+  const handlePhotoClick = (photoId: string | number) => {
     navigate(`/photos/${photoId}`);
   };
   
   // Go back to areas list
   const handleBackClick = () => {
-    navigate("/");
+    navigate("/areas");
   };
   
-  const isLoading = isAreaLoading || isPhotosLoading;
-  const error = areaError || photosError;
+  const isLoading = isAreasLoading || isPhotosLoading;
+  const error = areasError || photosError;
   
   if (isLoading) {
     return (
@@ -187,7 +189,7 @@ export default function AreaDetailPage() {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load area: {error?.message || "Area not found"}
+          Failed to load area: {error || "Area not found"}
         </div>
         <Button variant="outline" className="mt-4" onClick={handleBackClick}>
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -327,9 +329,9 @@ export default function AreaDetailPage() {
             </Button>
             <Button 
               onClick={handleMoveConfirm}
-              disabled={!targetAreaId || movePhotoMutation.isPending}
+              disabled={!targetAreaId || isMoving}
             >
-              {movePhotoMutation.isPending ? (
+              {isMoving ? (
                 <>
                   <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                   Moving...
@@ -359,9 +361,9 @@ export default function AreaDetailPage() {
             <Button 
               variant="destructive" 
               onClick={handleDeleteConfirm}
-              disabled={deletePhotoMutation.isPending}
+              disabled={isDeleting}
             >
-              {deletePhotoMutation.isPending ? (
+              {isDeleting ? (
                 <>
                   <div className="animate-spin w-4 h-4 mr-2 border-2 border-background rounded-full border-t-transparent"></div>
                   Deleting...
