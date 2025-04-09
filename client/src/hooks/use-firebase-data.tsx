@@ -48,42 +48,37 @@ function useFirebaseData<T>(
         console.error("Error fetching data:", err);
         
         if (isMounted) {
-          // Check for Firestore connectivity issues
-          const isFirebaseError = err && err.name === "FirebaseError";
-          const isConnectivityIssue = isFirebaseError && err.code === "unavailable";
+          // Convert to Error type for easier access to properties
+          const error = err as Error;
+          const errorMessage = error.message || "Unknown error";
+          
+          // Check for connectivity issues (looking for specific error messages)
+          const isConnectivityIssue = 
+            errorMessage.includes("unavailable") || 
+            errorMessage.includes("network") || 
+            errorMessage.includes("connection");
           
           if (isConnectivityIssue && retryCount < maxRetries) {
-            // If there's a Firestore connectivity issue, retry
+            // If it seems like a connectivity issue, retry
             retryCount++;
-            console.log(`Firebase unavailable. Retrying (${retryCount}/${maxRetries})...`);
+            console.log(`Connection issue. Retrying (${retryCount}/${maxRetries})...`);
             
-            // Don't set error or show toast for retries
-            // Just wait a moment and try again
+            // Wait a moment and try again
             setTimeout(fetchData, 1500);
-            return; // Skip setting error state and showing toast
+            return; // Skip setting error state
           }
           
           // Set error state
-          const errorMessage = isFirebaseError 
-            ? `Firebase Error (${err.code}): ${err.message}` 
-            : (err instanceof Error ? err.message : "An unknown error occurred");
-          
           setError(errorMessage);
           
-          // For connectivity issues, use a more specific message
-          if (isConnectivityIssue) {
-            toast({
-              title: "Connection Issue",
-              description: "Could not connect to the database. Some features may be limited.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: errorMessage,
-              variant: "destructive"
-            });
-          }
+          // Show a toast with appropriate message
+          toast({
+            title: isConnectivityIssue ? "Connection Issue" : "Error",
+            description: isConnectivityIssue 
+              ? "Could not connect to the database. Some features may be limited." 
+              : errorMessage,
+            variant: "destructive"
+          });
         }
       } finally {
         if (isMounted) {
