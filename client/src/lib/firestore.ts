@@ -22,6 +22,7 @@ import {
 import { 
   ref, 
   uploadBytes, 
+  uploadString,
   getDownloadURL, 
   deleteObject 
 } from "firebase/storage";
@@ -668,8 +669,20 @@ export async function uploadPhoto(
     // Log permissions before attempting upload
     await logFirebasePermissions();
     
-    // Skip image resizing for now to troubleshoot upload issues
-    // const resizedImage = await resizeImage(file, 1200, 1200, 0.8);
+    // Re-enable image resizing to help with uploads
+    console.log("Resizing image to optimize upload...");
+    let resizedImage;
+    try {
+      resizedImage = await resizeImage(file, 1200, 1200, 0.7);
+      console.log("Image resized successfully:", {
+        originalSize: file.size,
+        resizedSize: resizedImage.size,
+        reduction: `${Math.round((1 - resizedImage.size / file.size) * 100)}%`
+      });
+    } catch (resizeError) {
+      console.warn("Image resize failed, will use original file:", resizeError);
+      resizedImage = file;
+    }
     
     // Generate a unique filename
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -681,7 +694,7 @@ export async function uploadPhoto(
     console.log("Storage reference created for path:", storagePath);
     
     try {
-      // Try to upload in smaller chunks for better error reporting
+      // Try to upload using a more reliable method
       console.log("Starting upload attempt...");
       const metadata = {
         contentType: file.type,
@@ -692,16 +705,42 @@ export async function uploadPhoto(
         }
       };
       
-      // Upload the file to Firebase Storage with more detailed error handling
+      // Upload the file to Firebase Storage using base64 string method for better reliability
       console.log("About to upload file to Firebase Storage...");
       let uploadTask;
+      
       try {
-        uploadTask = await uploadBytes(storageRef, file, metadata);
+        // Convert Blob to base64 for more reliable uploads
+        const fileReader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          fileReader.onload = () => {
+            const base64String = fileReader.result as string;
+            // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+            const base64Data = base64String.split(',')[1];
+            resolve(base64Data);
+          };
+          fileReader.onerror = reject;
+          fileReader.readAsDataURL(resizedImage);
+        });
+        
+        const base64Data = await base64Promise;
+        console.log("Image converted to base64 for upload");
+        
+        // Upload using a string instead of bytes for better reliability
+        uploadTask = await uploadString(storageRef, base64Data, 'base64', metadata);
         console.log("Upload completed successfully:", uploadTask);
       } catch (error: any) {
         console.error("STORAGE UPLOAD ERROR:", error);
-        // Rethrow with more details
-        throw new Error(`Firebase Storage error during upload: ${error.message || String(error)}`);
+        
+        // Fall back to direct upload if string upload fails
+        console.log("Falling back to direct upload method...");
+        try {
+          uploadTask = await uploadBytes(storageRef, resizedImage, metadata);
+          console.log("Direct upload completed successfully");
+        } catch (fallbackError: any) {
+          console.error("FALLBACK UPLOAD ERROR:", fallbackError);
+          throw new Error(`Firebase Storage error during upload: ${error.message || String(error)}`);
+        }
       }
       
       // Get the download URL with better error handling
@@ -942,16 +981,43 @@ export async function createTag(
   let tagStoragePath = undefined;
   
   if (tagImage) {
-    // Resize tag image
-    const resizedImage = await resizeImage(tagImage, 800, 800, 0.8);
+    // Resize tag image for better upload performance
+    const resizedImage = await resizeImage(tagImage, 800, 800, 0.7);
     
     // Generate a unique filename
-    const fileName = `${Date.now()}_${tagImage.name}`;
+    const fileName = `${Date.now()}_${tagImage.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     tagStoragePath = `users/${userId}/projects/${projectId}/photos/${photoId}/tags/${fileName}`;
     const storageRef = ref(storage, tagStoragePath);
     
-    // Upload to Firebase Storage
-    await uploadBytes(storageRef, resizedImage);
+    try {
+      // Convert Blob to base64 for more reliable uploads
+      const fileReader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        fileReader.onload = () => {
+          const base64String = fileReader.result as string;
+          // Remove the data URL prefix
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        fileReader.onerror = reject;
+        fileReader.readAsDataURL(resizedImage);
+      });
+      
+      const base64Data = await base64Promise;
+      
+      // Upload using a string instead of bytes for better reliability
+      const metadata = {
+        contentType: tagImage.type,
+      };
+      
+      await uploadString(storageRef, base64Data, 'base64', metadata);
+    } catch (uploadError) {
+      console.error("Error uploading tag image with string method:", uploadError);
+      // Fall back to direct method if string upload fails
+      await uploadBytes(storageRef, resizedImage);
+    }
+    
+    // Get the download URL
     tagImageUrl = await getDownloadURL(storageRef);
   }
   
@@ -1011,16 +1077,43 @@ export async function updateTag(
       }
     }
     
-    // Resize tag image
-    const resizedImage = await resizeImage(tagImage, 800, 800, 0.8);
+    // Resize tag image for better upload performance
+    const resizedImage = await resizeImage(tagImage, 800, 800, 0.7);
     
     // Generate a unique filename
-    const fileName = `${Date.now()}_${tagImage.name}`;
+    const fileName = `${Date.now()}_${tagImage.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     tagStoragePath = `users/${tag.userId}/projects/${projectId}/photos/${photoId}/tags/${fileName}`;
     const storageRef = ref(storage, tagStoragePath);
     
-    // Upload to Firebase Storage
-    await uploadBytes(storageRef, resizedImage);
+    try {
+      // Convert Blob to base64 for more reliable uploads
+      const fileReader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        fileReader.onload = () => {
+          const base64String = fileReader.result as string;
+          // Remove the data URL prefix
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        fileReader.onerror = reject;
+        fileReader.readAsDataURL(resizedImage);
+      });
+      
+      const base64Data = await base64Promise;
+      
+      // Upload using a string instead of bytes for better reliability
+      const metadata = {
+        contentType: tagImage.type,
+      };
+      
+      await uploadString(storageRef, base64Data, 'base64', metadata);
+    } catch (uploadError) {
+      console.error("Error uploading tag image with string method:", uploadError);
+      // Fall back to direct method if string upload fails
+      await uploadBytes(storageRef, resizedImage);
+    }
+    
+    // Get the download URL
     tagImageUrl = await getDownloadURL(storageRef);
   }
   
