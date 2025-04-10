@@ -366,7 +366,12 @@ service cloud.firestore {
   }
 }
 `);
-    } else if (isFirestoreIndexError && indexUrl) {
+
+      // For permission denied errors, show the dedicated error component with full guidance
+      return <FirebasePermissionError projectId={import.meta.env.VITE_FIREBASE_PROJECT_ID} />;
+    }
+    
+    if (isFirestoreIndexError && indexUrl) {
       console.error(`
 FIRESTORE INDEX REQUIRED
 ========================
@@ -382,7 +387,6 @@ ${indexUrl}
           <h2 className="text-lg font-semibold mb-2">
             <div className="flex items-center">
               {isConnectionError ? "Connection Issue" : 
-               isPermissionError ? "Firebase Security Rules Issue" :
                isFirestoreIndexError ? "Firebase Index Required" :
                "Error Loading Areas"}
               
@@ -398,19 +402,10 @@ ${indexUrl}
           <p className="mb-2">
             {isConnectionError 
               ? "We're having trouble connecting to the Firebase database. This might be a temporary issue." 
-              : isPermissionError
-              ? "You don't have permission to access this data. Your Firebase security rules need to be updated."
               : isFirestoreIndexError 
               ? "This operation requires a Firestore index to be created."
               : `Failed to load areas: ${error}`}
           </p>
-          
-          {isPermissionError && (
-            <p className="text-sm mb-4 bg-amber-50 p-2 rounded border border-amber-200">
-              Go to the Firebase Console → Firestore Database → Rules and update your security rules.
-              See the browser console for the exact rules to copy.
-            </p>
-          )}
           
           {isFirestoreIndexError && indexUrl && (
             <p className="text-sm mb-4 bg-amber-50 p-2 rounded border border-amber-200">
