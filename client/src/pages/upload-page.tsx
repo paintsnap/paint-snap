@@ -414,6 +414,18 @@ export default function UploadPage() {
                       if (!user || !currentProject || !form.getValues("imageFile")) return;
                       
                       setIsUploading(true);
+                      
+                      // Add a manual timeout to prevent UI from freezing indefinitely
+                      const timeoutId = setTimeout(() => {
+                        console.log("Manual upload timeout triggered from UI");
+                        setIsUploading(false);
+                        toast({
+                          title: "Storage Test Timed Out",
+                          description: "The upload is taking too long. Firebase Storage rules might be preventing uploads. Please check console for details.",
+                          variant: "destructive",
+                        });
+                      }, 20000); // 20 second timeout as a backup
+                      
                       try {
                         const photoFile = form.getValues("imageFile");
                         console.log("Testing direct storage upload with:", {
@@ -433,17 +445,26 @@ export default function UploadPage() {
                         
                         toast({
                           title: "Storage Test Success",
-                          description: "The image was successfully uploaded to Firebase Storage.",
+                          description: "The image was successfully uploaded to Firebase Storage. High-resolution images are now supported!",
                         });
                       } catch (error: any) {
                         console.error("Storage test upload error:", error);
                         
-                        toast({
-                          title: "Storage Test Failed",
-                          description: error.message || "Failed to upload to Firebase Storage",
-                          variant: "destructive",
-                        });
+                        if (error.code === 'storage/unauthorized') {
+                          toast({
+                            title: "Firebase Storage Rules Issue",
+                            description: "Storage access denied. Firebase rules need to be updated to allow authenticated uploads.",
+                            variant: "destructive",
+                          });
+                        } else {
+                          toast({
+                            title: "Storage Test Failed",
+                            description: error.message || "Failed to upload to Firebase Storage",
+                            variant: "destructive",
+                          });
+                        }
                       } finally {
+                        clearTimeout(timeoutId);
                         setIsUploading(false);
                       }
                     }}
