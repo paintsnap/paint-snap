@@ -311,7 +311,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Password reset function
-  const sendPasswordReset = async (email: string) => {
+  const sendPasswordReset = async (email: string): Promise<void> => {
     setError(null);
     try {
       await sendPasswordResetEmail(auth, email);
@@ -320,8 +320,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Password Reset Email Sent",
         description: "Please check your email for instructions to reset your password.",
       });
-      
-      return true;
     } catch (error) {
       console.error("Error sending password reset:", error);
       const authError = error as AuthError;
@@ -359,7 +357,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive"
       });
       
-      throw error;
+      // Don't rethrow, just return
+      return;
     }
   };
   

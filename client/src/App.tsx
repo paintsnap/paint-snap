@@ -6,8 +6,10 @@ import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
-import { Home, Plus, Grid, LogOut, Camera } from "lucide-react";
-import React from "react";
+import { Home, Plus, Grid, LogOut, Camera, Mail, AlertTriangle, X } from "lucide-react";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Import our pages
 import LandingPage from "@/pages/landing-page";
@@ -102,10 +104,79 @@ function TopNavigation() {
   );
 }
 
+// Email verification banner displayed when a user's email isn't verified
+function EmailVerificationBanner() {
+  const { user, isEmailVerified, verifyEmail } = useAuth();
+  const [showBanner, setShowBanner] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  
+  // If email is verified or there's no user, don't show the banner
+  if (isEmailVerified || !user || !showBanner) {
+    return null;
+  }
+  
+  const handleSendVerification = async () => {
+    setIsSending(true);
+    try {
+      await verifyEmail();
+      // Banner will stay open to show the success toast
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+  
+  return (
+    <Alert variant="warning" className="mb-4 border-amber-500 bg-amber-50">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-2">
+          <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-600" />
+          <div>
+            <AlertDescription className="text-amber-800">
+              <span className="font-medium">Please verify your email address.</span> You need to verify your email to ensure you can access all features and recover your account if needed.
+            </AlertDescription>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="border-amber-500 text-amber-600 hover:bg-amber-100"
+            onClick={handleSendVerification}
+            disabled={isSending}
+          >
+            {isSending ? (
+              <span className="flex items-center">
+                <span className="animate-spin mr-1">⟳</span> Sending...
+              </span>
+            ) : (
+              <span className="flex items-center">
+                <Mail className="mr-1 h-4 w-4" /> Send verification email
+              </span>
+            )}
+          </Button>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            className="text-amber-600 hover:bg-amber-100"
+            onClick={() => setShowBanner(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </Alert>
+  );
+}
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen pb-16">
       <TopNavigation />
+      <div className="container pt-4">
+        <EmailVerificationBanner />
+      </div>
       {children}
       <BottomNavigation />
     </div>

@@ -107,6 +107,9 @@ export default function AuthPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
+  // Get the sendPasswordReset function from auth context
+  const { sendPasswordReset } = useAuth();
+
   // Handle forgot password submission
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,9 +124,17 @@ export default function AuthPage() {
     
     setIsResetting(true);
     try {
-      await signInWithEmail(resetEmail, resetEmail);
-      setIsResetting(false);
+      await sendPasswordReset(resetEmail);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "If an account exists with this email, you'll receive instructions to reset your password.",
+      });
+      // Return to login tab after successful password reset request
+      setActiveTab("login");
     } catch (error) {
+      console.error("Password reset error:", error);
+      // Error handling is already done in the hook
+    } finally {
       setIsResetting(false);
     }
   };
@@ -234,7 +245,71 @@ export default function AuthPage() {
                   </form>
                 </Form>
                 
-                {/* Google Sign-In button removed as requested but was still being referenced in code */}
+                <div className="mt-2 text-center">
+                  <button 
+                    type="button" 
+                    onClick={() => setActiveTab("forgot-password")}
+                    className="text-sm text-[var(--color-primary)] hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Forgot Password Form */}
+            {activeTab === "forgot-password" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-center">Reset Your Password</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Enter your email address and we'll send you instructions to reset your password.
+                </p>
+                
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="reset-email" className="text-sm font-medium">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="example@email.com"
+                        className="pl-10"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        disabled={isResetting}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+                    disabled={isResetting}
+                  >
+                    {isResetting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Instructions"
+                    )}
+                  </Button>
+                  
+                  <div className="text-center mt-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTab("login")}
+                      className="text-sm text-gray-600 hover:text-[var(--color-primary)]"
+                    >
+                      ← Back to sign in
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
