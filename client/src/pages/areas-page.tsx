@@ -38,6 +38,7 @@ import { Home, MoreVertical, Plus, Upload, Camera, CloudOff } from "lucide-react
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { FirebasePermissionError } from "@/components/firebase-permission-error";
 
 // Import Firestore hooks and functions
 import { useProject } from "@/hooks/use-project";

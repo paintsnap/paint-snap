@@ -24,6 +24,22 @@ console.log("Firebase configuration:", {
   appId: import.meta.env.VITE_FIREBASE_APP_ID ? "Set" : "Missing",
 });
 
+// Check for missing environment variables
+if (!import.meta.env.VITE_FIREBASE_API_KEY || !import.meta.env.VITE_FIREBASE_PROJECT_ID || !import.meta.env.VITE_FIREBASE_APP_ID) {
+  console.error(`
+  ================================================================
+  MISSING FIREBASE CONFIGURATION! Please check your environment variables.
+  
+  Make sure you have the following set in your environment:
+  - VITE_FIREBASE_API_KEY
+  - VITE_FIREBASE_PROJECT_ID
+  - VITE_FIREBASE_APP_ID
+  
+  If you've just added these, you may need to restart the application.
+  ================================================================
+  `);
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
