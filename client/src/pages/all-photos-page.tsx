@@ -7,7 +7,7 @@ import { movePhoto, deletePhoto } from "@/lib/firestore";
 import { PhotoWithTags, AreaWithPhotos } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { FirebasePermissionError } from "@/components/firebase-permission-error";
+import { DataError } from "@/components/data-error";
 import { 
   Card, 
   CardHeader, 
@@ -151,18 +151,8 @@ export default function AllPhotosPage() {
   }
   
   if (photosError) {
-    // Check if it's a Firebase permission error
-    if (typeof photosError === 'string' && photosError.includes('permission-denied')) {
-      return <FirebasePermissionError projectId={import.meta.env.VITE_FIREBASE_PROJECT_ID} />;
-    }
-    
-    return (
-      <div className="container mx-auto p-4">
-        <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load photos: {photosError}
-        </div>
-      </div>
-    );
+    // Use our user-friendly error component
+    return <DataError onRetry={() => refetchPhotos()} />;
   }
   
   return (

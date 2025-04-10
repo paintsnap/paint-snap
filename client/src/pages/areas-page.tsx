@@ -38,7 +38,7 @@ import { Home, MoreVertical, Plus, Upload, Camera, CloudOff } from "lucide-react
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FirebasePermissionError } from "@/components/firebase-permission-error";
+import { DataError } from "@/components/data-error";
 
 // Import Firestore hooks and functions
 import { useProject } from "@/hooks/use-project";
@@ -106,54 +106,9 @@ export default function AreasPage() {
     if (!currentProject) {
       toast({
         title: "Error",
-        description: "Project information not available. Make sure your Firebase project is correctly set up.",
+        description: "Project information not available. Please try again.",
         variant: "destructive",
       });
-      
-      // Show detailed instructions for fixing Firebase setup
-      console.error(`
-⚠️ PROJECT INFORMATION NOT AVAILABLE ⚠️
-=======================================
-
-This error typically occurs when:
-1. Your Firebase security rules are not properly configured
-2. The current user doesn't have a default project created
-3. There's a connection issue with Firestore
-
-To fix this:
-1. Check your Firestore security rules in the Firebase Console
-2. Ensure the rules allow read/write for the projects collection
-3. Restart the app and try signing in again to create a default project
-
-Suggested Security Rules:
--------------------------
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      match /areas/{areaId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-      }
-      
-      match /photos/{photoId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        
-        match /tags/{tagId} {
-          allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        }
-      }
-    }
-  }
-}
-      `);
       return;
     }
     
@@ -185,39 +140,15 @@ service cloud.firestore {
     } catch (error: any) {
       console.error("Error creating area:", error);
       
-      // Show specific messages for common Firestore errors
-      if (error.code === 'permission-denied') {
-        toast({
-          title: "Firebase Security Rules Issue",
-          description: "You don't have permission to create areas. Check your Firestore security rules.",
-          variant: "destructive",
-        });
-        
-        console.error("FIRESTORE SECURITY RULES ISSUE: See console for suggested security rules");
-      } else if (error.code === 'failed-precondition') {
-        toast({
-          title: "Firestore Index Required",
-          description: "This operation requires a Firestore index. Check console for more details.",
-          variant: "destructive",
-        });
-        
-        // Extract the URL from the error message if possible
-        const urlMatch = error.message?.match(/(https:\/\/console\.firebase\.google\.com\/[^\s"]+)/);
-        if (urlMatch && urlMatch[1]) {
-          console.error(`
-FIRESTORE INDEX REQUIRED
-========================
-You need to create an index for this operation to work.
-Click this link to create the required index automatically:
-${urlMatch[1]}
-          `);
-        }
-      } else {
-        toast({
-          title: "Failed to create area",
-          description: error.message || "An unknown error occurred",
-          variant: "destructive",
-        });
+      toast({
+        title: "Failed to create area",
+        description: "There was a problem creating your area. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Log the detailed error for developers
+      if (error.code) {
+        console.error(`Detailed error (${error.code}): ${error.message}`);
       }
     } finally {
       setIsCreatingArea(false);
@@ -250,7 +181,7 @@ ${urlMatch[1]}
       console.error("Error updating area:", error);
       toast({
         title: "Failed to rename area",
-        description: (error as Error).message || "An unknown error occurred",
+        description: "There was a problem renaming your area. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -283,7 +214,7 @@ ${urlMatch[1]}
       console.error("Error deleting area:", error);
       toast({
         title: "Failed to delete area",
-        description: (error as Error).message || "An unknown error occurred",
+        description: "There was a problem deleting the area. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -318,148 +249,11 @@ ${urlMatch[1]}
   }
   
   if (error) {
-    const isConnectionError = 
-      error.includes('unavailable') || 
-      error.includes('network') || 
-      error.includes('connection');
+    // Log the error details to console for developers
+    console.error("Error loading areas:", error);
     
-    const isPermissionError = error.includes('permission-denied');
-    const isFirestoreIndexError = error.includes('failed-precondition') || error.includes('index');
-    
-    // Extract the URL from the error message if it's an index issue
-    const urlMatch = error.match(/(https:\/\/console\.firebase\.google\.com\/[^\s"]+)/);
-    const indexUrl = urlMatch ? urlMatch[1] : null;
-    
-    // Log detailed instructions to the console for Firestore security issues
-    if (isPermissionError) {
-      console.error(`
-⚠️ FIREBASE SECURITY RULES ISSUE ⚠️
-====================================
-
-Your Firebase security rules need to be updated to allow access to the needed collections.
-Go to the Firebase Console > Firestore Database > Rules and use these rules:
-
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      match /areas/{areaId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-      }
-      
-      match /photos/{photoId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        
-        match /tags/{tagId} {
-          allow read, write: if request.auth != null && get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
-        }
-      }
-    }
-  }
-}
-`);
-
-      // For permission denied errors, show the dedicated error component with full guidance
-      return <FirebasePermissionError projectId={import.meta.env.VITE_FIREBASE_PROJECT_ID} />;
-    }
-    
-    if (isFirestoreIndexError && indexUrl) {
-      console.error(`
-FIRESTORE INDEX REQUIRED
-========================
-This operation requires a Firestore index to be created.
-Click this link to create the required index automatically:
-${indexUrl}
-`);
-    }
-    
-    return (
-      <div className="container mx-auto p-4">
-        <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          <h2 className="text-lg font-semibold mb-2">
-            <div className="flex items-center">
-              {isConnectionError ? "Connection Issue" : 
-               isFirestoreIndexError ? "Firebase Index Required" :
-               "Error Loading Areas"}
-              
-              {isConnectionError && (
-                <div className="ml-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full flex items-center">
-                  <CloudOff className="h-3 w-3 mr-1" />
-                  <span>Offline Mode</span>
-                </div>
-              )}
-            </div>
-          </h2>
-          
-          <p className="mb-2">
-            {isConnectionError 
-              ? "We're having trouble connecting to the Firebase database. This might be a temporary issue." 
-              : isFirestoreIndexError 
-              ? "This operation requires a Firestore index to be created."
-              : `Failed to load areas: ${error}`}
-          </p>
-          
-          {isFirestoreIndexError && indexUrl && (
-            <p className="text-sm mb-4 bg-amber-50 p-2 rounded border border-amber-200">
-              Click the link in the browser console to create the required index automatically.
-            </p>
-          )}
-          
-          <Button 
-            variant="outline" 
-            onClick={() => refetch()}
-            className="mr-2"
-          >
-            Retry
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/dashboard")}
-          >
-            Go to Dashboard
-          </Button>
-        </div>
-        
-        {/* Fall back to empty state to allow creating new areas even with connection issues */}
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">
-                {currentProject?.name || "Your Project"}
-              </h1>
-              <p className="text-muted-foreground">Manage your areas</p>
-            </div>
-            <Button onClick={() => setIsAddAreaDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Area
-            </Button>
-          </div>
-          
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Home className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No areas available</h3>
-            <p className="text-muted-foreground mb-4">
-              {isConnectionError 
-                ? "Currently unable to load your areas due to connection issues." 
-                : "Create your first area to start organizing your photos"}
-            </p>
-            <Button onClick={() => setIsAddAreaDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Area
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    // Show a user-friendly error message
+    return <DataError onRetry={() => refetch()} />;
   }
   
   // Safe check for areas

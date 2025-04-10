@@ -43,6 +43,7 @@ import {
   deletePhoto
 } from "@/lib/firestore";
 import { useProject } from "@/hooks/use-project";
+import { DataError } from "@/components/data-error";
 
 // Define the PhotoWithTags type to match what comes from Firebase
 interface PhotoWithTags extends Photo {
@@ -185,12 +186,35 @@ export default function AreaDetailPage() {
     );
   }
   
-  if (error || !area) {
+  if (error) {
+    // Log the error details to console for developers
+    console.error("Error loading area details:", error);
+    
+    // Show a user-friendly error message
     return (
       <div className="container mx-auto p-4">
-        <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load area: {error || "Area not found"}
-        </div>
+        <DataError 
+          message="We couldn't load this area's details. Please try again." 
+          onRetry={() => {
+            refetchAreas();
+            refetchPhotos();
+          }} 
+        />
+        <Button variant="outline" className="mt-4" onClick={handleBackClick}>
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Back to Areas
+        </Button>
+      </div>
+    );
+  }
+  
+  if (!area) {
+    return (
+      <div className="container mx-auto p-4">
+        <DataError 
+          message="Area not found. It may have been deleted." 
+          onRetry={() => refetchAreas()} 
+        />
         <Button variant="outline" className="mt-4" onClick={handleBackClick}>
           <ChevronLeft className="w-4 h-4 mr-2" />
           Back to Areas
