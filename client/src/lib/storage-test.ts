@@ -1,5 +1,6 @@
-import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
+import { ref, uploadBytes, uploadString, getDownloadURL, getStorage } from "firebase/storage";
 import { storage } from "./firebase";
+import { getAuth } from "firebase/auth";
 
 // Test function to check if Firebase Storage uploads work
 export async function testStorageUpload(projectId: string, userId: string, file: File): Promise<string> {
@@ -12,6 +13,13 @@ export async function testStorageUpload(projectId: string, userId: string, file:
   });
   
   try {
+    // Log the auth state
+    const auth = getAuth();
+    console.log("Auth state:", {
+      isLoggedIn: !!auth.currentUser,
+      userId: auth.currentUser?.uid
+    });
+    
     // Log Firebase Storage configuration
     console.log("Firebase Storage configuration:", {
       bucket: storage.app.options.storageBucket,
@@ -23,7 +31,31 @@ export async function testStorageUpload(projectId: string, userId: string, file:
       projectId, userId, fileName: file.name, fileSize: file.size
     });
     
-    // Create a reference to the storage location
+    // First try a super simple string upload to test connectivity
+    console.log("First trying a simple string upload...");
+    const textStoragePath = `test/string_${Date.now()}.txt`;
+    const textRef = ref(storage, textStoragePath);
+    
+    try {
+      // Simple text upload with short timeout
+      const textTimeoutPromise = new Promise<never>((_, reject) => {
+        const id = setTimeout(() => {
+          clearTimeout(id);
+          reject(new Error("Text upload timed out"));
+        }, 5000);
+      });
+      
+      const textSnapshot = await Promise.race([
+        uploadString(textRef, "This is a simple text test"),
+        textTimeoutPromise
+      ]);
+      
+      console.log("Text upload succeeded!", textSnapshot);
+    } catch (textError) {
+      console.error("Simple text upload failed:", textError);
+    }
+    
+    // Create a reference to the storage location for image
     const timestamp = Date.now();
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const filePath = `uploads/${projectId}/test/${timestamp}.${fileExtension}`;
@@ -83,7 +115,8 @@ service firebase.storage {
       `);
       error.message = "Storage access denied. Firebase Storage rules need to be updated to allow uploads.";
     } else if (error.message && error.message.includes('timed out')) {
-      console.error("Upload timed out. This usually indicates a permissions issue with Firebase Storage rules.");
+      console.error("Upload timed out. Network connectivity issues or Firebase Storage rules may be blocking access.");
+      error.message = "Upload timed out. This could be due to network connectivity issues or Firebase Storage rules.";
     } else if (error.code === 'storage/quota-exceeded') {
       error.message = "Storage quota exceeded. Please check your Firebase plan.";
     } else if (error.code === 'storage/invalid-argument') {
@@ -92,6 +125,9 @@ service firebase.storage {
     } else if (error.code === 'storage/bucket-not-found') {
       error.message = "Storage bucket not found. Please verify the bucket name in Firebase configuration.";
       console.error("Could not find storage bucket:", storage.app.options.storageBucket);
+    } else if (error.code === 'storage/retry-limit-exceeded') {
+      error.message = "Network issues prevented the upload. Firebase Storage may be unreachable from this environment.";
+      console.error("Network connectivity issue or Firebase Storage is unreachable.");
     } else if (!error.message) {
       error.message = "Unknown storage error - check browser console for details";
     }
