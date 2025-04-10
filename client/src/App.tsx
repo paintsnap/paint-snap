@@ -7,6 +7,8 @@ import { ProtectedRoute } from "./lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import { Home, Plus, Grid, LogOut, Camera, Mail, AlertTriangle, X } from "lucide-react";
+import logoImage from "@assets/PaintSnap-Full-Logo-sm.png";
+import logoImageLight from "@assets/PaintSnap-Full-Logo-light-sm.png";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -82,8 +84,7 @@ function TopNavigation() {
       <div className="container flex h-14 items-center">
         <div className="flex items-center gap-2">
           <a href="/dashboard" onClick={handleHomeClick} className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">PaintSnap</h1>
+            <img src={logoImage} alt="PaintSnap" className="h-8" />
           </a>
         </div>
         

@@ -1,10 +1,12 @@
 import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Camera, Palette, Home, Pin } from "lucide-react";
+import { Palette, Home, Pin, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-// Import background image
+// Import background image and logos
 import backgroundImage from "@assets/background-room.jpg";
+import logoImageLight from "@assets/PaintSnap-Full-Logo-light-sm.png";
+import logoImage from "@assets/PaintSnap-Full-Logo-sm.png";
 
 export default function LandingPage() {
   const [, navigate] = useLocation();
@@ -23,8 +25,7 @@ export default function LandingPage() {
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-[var(--color-accent)]" />
-            <span className="font-bold text-lg text-white">PaintSnap</span>
+            <img src={logoImageLight} alt="PaintSnap" className="h-8" />
           </div>
           <div className="flex gap-4">
             <Button 
@@ -221,8 +222,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <Camera className="h-5 w-5 text-[var(--color-accent)]" />
-              <span className="font-bold">PaintSnap</span>
+              <img src={logoImage} alt="PaintSnap" className="h-6" />
             </div>
             <div className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} PaintSnap. All rights reserved.
