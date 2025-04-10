@@ -174,15 +174,30 @@ export default function PhotoViewPage() {
     },
   });
   
-  // Query to fetch the photo with its tags
+  // Get the current project ID
+  const { currentProject } = useProject();
+  const projectId = currentProject?.id || '';
+  
+  // Query to fetch the photo with its tags using Firebase
   const { 
-    data: photo,
-    isLoading, 
-    error 
-  } = useQuery<PhotoWithTagsDetailed>({ 
-    queryKey: [`/api/photos/${photoId}`],
-    enabled: !!photoId && !!profile,
-  });
+    data: photoData,
+    isLoading: isPhotoLoading, 
+    error: photoError 
+  } = usePhotoWithTags(projectId, photoId?.toString() || '');
+  
+  // Convert the Firebase photo data to the expected format
+  const photo = useMemo(() => {
+    if (!photoData) return undefined;
+    
+    const { photo, tags } = photoData;
+    return {
+      ...photo,
+      tags: tags || [],
+    } as PhotoWithTagsDetailed;
+  }, [photoData]);
+  
+  const isLoading = isPhotoLoading;
+  const error = photoError;
   
   // Mutation to create a new tag
   const createTagMutation = useMutation({
