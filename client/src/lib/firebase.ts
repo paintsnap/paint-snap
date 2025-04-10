@@ -125,7 +125,7 @@ export const createUserProfile = async (user: User, additionalData: any = {}) =>
 };
 
 // Resize image before upload
-export const resizeImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<Blob> => {
+export const resizeImage = (file: File, maxWidth = 1800, maxHeight = 1800, quality = 0.8): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = URL.createObjectURL(file);

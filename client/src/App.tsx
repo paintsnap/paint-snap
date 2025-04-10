@@ -87,8 +87,8 @@ function TopNavigation() {
           </a>
         </div>
         
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground mr-2">
+        <div className="flex items-center gap-3 ml-auto">
+          <div className="text-sm font-medium">
             {profile ? (profile.username || profile.displayName || "User") : "User"}
           </div>
           <button 
@@ -129,16 +129,19 @@ function EmailVerificationBanner() {
   
   return (
     <Alert className="mb-4 border border-amber-500 bg-amber-50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-2">
-          <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-600" />
-          <div>
-            <AlertDescription className="text-amber-800">
-              <span className="font-medium">Please verify your email address.</span> You need to verify your email to ensure you can access all features and recover your account if needed.
-            </AlertDescription>
-          </div>
+      <div className="flex flex-col items-center text-center">
+        <div className="flex items-center space-x-2 mb-2">
+          <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <AlertDescription className="text-amber-800 font-medium">
+            Please verify your email address.
+          </AlertDescription>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="mb-3">
+          <p className="text-amber-800 text-sm">
+            You need to verify your email to ensure you can access all features and recover your account if needed.
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
           <Button 
             size="sm" 
             variant="outline" 

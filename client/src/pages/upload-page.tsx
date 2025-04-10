@@ -3,8 +3,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProject } from "@/hooks/use-project";
 import { useAreas } from "@/hooks/use-firebase-data";
 import { uploadPhoto } from "@/lib/firestore";
-import { testStorageUpload } from "@/lib/storage-test";
-import { testMinimalUpload } from "@/lib/storage-minimal-test";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -25,7 +23,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Upload, ImagePlus, ArrowLeft, FileText } from "lucide-react";
+import { Camera, Upload, ImagePlus, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -171,12 +169,8 @@ export default function UploadPage() {
         description: "Your photo has been uploaded successfully.",
       });
       
-      // Navigate back to the area detail page
-      if (preSelectedAreaId) {
-        navigate(`/areas/${preSelectedAreaId}`);
-      } else {
-        navigate(`/photos/${photoId}`);
-      }
+      // Navigate directly to the photo's tagging page instead of back to the area
+      navigate(`/photos/${photoId}`);
     } catch (error: any) {
       console.error("Photo upload error:", error);
       
@@ -402,139 +396,6 @@ export default function UploadPage() {
               )}
               
               {/* No Photo Name field required */}
-              
-              {/* Test Storage Buttons */}
-              <div className="pb-4 space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground mb-1">Storage Tests</h3>
-                
-                {/* Minimal Text Upload Test */}
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  className="w-full"
-                  disabled={isUploading}
-                  onClick={async () => {
-                    setIsUploading(true);
-                    
-                    // Add a manual timeout to prevent UI from freezing indefinitely
-                    const timeoutId = setTimeout(() => {
-                      console.log("Manual upload timeout triggered from UI");
-                      setIsUploading(false);
-                      toast({
-                        title: "Minimal Text Upload Timed Out",
-                        description: "The upload is taking too long. Firebase Storage rules might be preventing uploads.",
-                        variant: "destructive",
-                      });
-                    }, 10000); // 10 second timeout
-                    
-                    try {
-                      console.log("Testing minimal text upload to Firebase Storage");
-                      
-                      const downloadUrl = await testMinimalUpload();
-                      
-                      if (downloadUrl) {
-                        console.log("Minimal text upload successful! URL:", downloadUrl);
-                        
-                        toast({
-                          title: "Text Upload Success",
-                          description: "A simple text file was uploaded to Firebase Storage. Basic connectivity works!",
-                        });
-                      } else {
-                        toast({
-                          title: "Text Upload Failed",
-                          description: "The minimal text upload failed. Check console for details.",
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error: any) {
-                      console.error("Minimal text upload error:", error);
-                      
-                      toast({
-                        title: "Text Upload Error",
-                        description: error.message || "Failed to upload text to Firebase Storage",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      clearTimeout(timeoutId);
-                      setIsUploading(false);
-                    }
-                  }}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Test Minimal Text Upload
-                </Button>
-                
-                {/* Image Upload Test - Only show if an image is selected */}
-                {imagePreview && (
-                  <Button 
-                    type="button" 
-                    variant="secondary"
-                    className="w-full"
-                    disabled={isUploading || !imagePreview}
-                    onClick={async () => {
-                      if (!user || !currentProject || !form.getValues("imageFile")) return;
-                      
-                      setIsUploading(true);
-                      
-                      // Add a manual timeout to prevent UI from freezing indefinitely
-                      const timeoutId = setTimeout(() => {
-                        console.log("Manual upload timeout triggered from UI");
-                        setIsUploading(false);
-                        toast({
-                          title: "Storage Test Timed Out",
-                          description: "The upload is taking too long. Firebase Storage rules might be preventing uploads. Please check console for details.",
-                          variant: "destructive",
-                        });
-                      }, 20000); // 20 second timeout as a backup
-                      
-                      try {
-                        const photoFile = form.getValues("imageFile");
-                        console.log("Testing direct storage upload with:", {
-                          projectId: currentProject.id,
-                          userId: user.uid,
-                          fileType: photoFile.type,
-                          fileSize: photoFile.size
-                        });
-                        
-                        const downloadUrl = await testStorageUpload(
-                          currentProject.id, 
-                          user.uid, 
-                          photoFile
-                        );
-                        
-                        console.log("Test upload successful! URL:", downloadUrl);
-                        
-                        toast({
-                          title: "Storage Test Success",
-                          description: "The image was successfully uploaded to Firebase Storage. High-resolution images are now supported!",
-                        });
-                      } catch (error: any) {
-                        console.error("Storage test upload error:", error);
-                        
-                        if (error.code === 'storage/unauthorized') {
-                          toast({
-                            title: "Firebase Storage Rules Issue",
-                            description: "Storage access denied. Firebase rules need to be updated to allow authenticated uploads.",
-                            variant: "destructive",
-                          });
-                        } else {
-                          toast({
-                            title: "Storage Test Failed",
-                            description: error.message || "Failed to upload to Firebase Storage",
-                            variant: "destructive",
-                          });
-                        }
-                      } finally {
-                        clearTimeout(timeoutId);
-                        setIsUploading(false);
-                      }
-                    }}
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Test Image Upload
-                  </Button>
-                )}
-              </div>
               
               <div className="flex space-x-4">
                 <Button 
