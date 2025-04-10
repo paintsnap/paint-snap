@@ -264,19 +264,23 @@ export default function PhotoViewPage() {
       );
     },
     onSuccess: (newTag) => {
-      // Immediately update the UI with the new tag
-      if (photoData && photo && photo.tags) {
-        const updatedTags = [...photo.tags, newTag];
+      // First invalidate to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
+      
+      // Force an immediate optimistic update of the UI
+      if (photoData && photoData.photo && photoData.tags) {
+        const updatedTags = [...photoData.tags, newTag];
+        const updatedPhoto = { 
+          ...photoData.photo, 
+          tagCount: updatedTags.length 
+        };
         
-        // Update the photo data directly in the cache
+        // Update the cache directly for immediate UI update
         queryClient.setQueryData(['usePhotoWithTags', projectId, photoId], {
-          photo: { ...photo, tagCount: updatedTags.length, tags: updatedTags },
+          photo: updatedPhoto,
           tags: updatedTags
         });
       }
-      
-      // Also invalidate the query to fetch fresh data
-      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
       toast({
         title: "Tag added",
