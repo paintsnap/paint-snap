@@ -129,9 +129,9 @@ function EmailVerificationBanner() {
   
   return (
     <Alert className="mb-4 border border-amber-500 bg-amber-50">
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col w-full text-left">
         <div className="flex items-center space-x-2 mb-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
           <AlertDescription className="text-amber-800 font-medium">
             Please verify your email address.
           </AlertDescription>
@@ -141,7 +141,7 @@ function EmailVerificationBanner() {
             You need to verify your email to ensure you can access all features and recover your account if needed.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-end space-x-3">
           <Button 
             size="sm" 
             variant="outline" 

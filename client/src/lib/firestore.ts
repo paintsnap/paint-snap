@@ -326,19 +326,28 @@ export async function getAreasWithPhotos(projectId: string, userId: string): Pro
   
   for (const area of areas) {
     const photosRef = getPhotosRef(projectId);
-    const photosQuery = query(
+    
+    // Query to get total count of photos in this area
+    const countQuery = query(
+      photosRef,
+      where("areaId", "==", area.id)
+    );
+    const countSnapshot = await getDocs(countQuery);
+    const photoCount = countSnapshot.size;
+    
+    // Query to get just the latest photo for preview
+    const latestPhotoQuery = query(
       photosRef,
       where("areaId", "==", area.id),
       orderBy("uploadDate", "desc"),
       limit(1)
     );
     
-    const photosSnapshot = await getDocs(photosQuery);
-    const photoCount = photosSnapshot.size;
+    const latestPhotoSnapshot = await getDocs(latestPhotoQuery);
     let latestPhotoUrl = undefined;
     
-    if (photoCount > 0) {
-      const latestPhoto = convertDoc<Photo>(photosSnapshot.docs[0]);
+    if (latestPhotoSnapshot.size > 0) {
+      const latestPhoto = convertDoc<Photo>(latestPhotoSnapshot.docs[0]);
       latestPhotoUrl = latestPhoto.imageUrl;
     }
     
