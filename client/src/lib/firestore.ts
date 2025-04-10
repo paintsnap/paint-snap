@@ -607,19 +607,38 @@ export async function getPhoto(projectId: string, photoId: string): Promise<Phot
   return convertDoc<Photo>(photoDoc);
 }
 
-export async function getPhotoWithTags(projectId: string, photoId: string): Promise<{ photo: Photo, tags: Tag[] } | null> {
+export async function getPhotoWithTags(projectId: string, photoId: string): Promise<{ photo: Photo & { areaName?: string }, tags: Tag[] } | null> {
   try {
     const photo = await getPhoto(projectId, photoId);
     if (!photo) {
+      console.error("Photo not found with ID:", photoId);
       return null;
     }
     
+    // Fetch area name to display in the UI
+    let areaName = "Unknown Area";
+    try {
+      if (photo.areaId) {
+        console.log("Fetching area details for areaId:", photo.areaId);
+        const area = await getArea(projectId, photo.areaId);
+        if (area) {
+          areaName = area.name;
+          console.log("Area name found:", areaName);
+        }
+      }
+    } catch (areaError) {
+      console.error("Error fetching area name:", areaError);
+      // Continue with unknown area name
+    }
+    
+    // Fetch tags for the photo
     let tags: Tag[] = [];
     try {
       const tagsRef = getTagsRef(projectId, photoId);
       const q = query(tagsRef, orderBy("createdAt"));
       const tagsSnapshot = await getDocs(q);
       tags = tagsSnapshot.docs.map(doc => convertDoc<Tag>(doc));
+      console.log(`Found ${tags.length} tags for photo ${photoId}`);
     } catch (error) {
       console.error("Error fetching tags for photo:", error);
       
@@ -649,7 +668,13 @@ export async function getPhotoWithTags(projectId: string, photoId: string): Prom
       }
     }
     
-    return { photo, tags };
+    // Return the enhanced photo with area name
+    const enhancedPhoto = {
+      ...photo,
+      areaName
+    };
+    
+    return { photo: enhancedPhoto, tags };
   } catch (error) {
     console.error("Error in getPhotoWithTags:", error);
     
@@ -1136,7 +1161,8 @@ export async function createTag(
     tagImageUrl = await getDownloadURL(storageRef);
   }
   
-  const tagData = {
+  // Create tag data object without undefined properties
+  const tagData: any = {
     photoId,
     userId,
     description,
@@ -1144,11 +1170,18 @@ export async function createTag(
     notes,
     positionX,
     positionY,
-    tagImageUrl,
-    tagStoragePath,
     createdAt: now,
     updatedAt: now
   };
+  
+  // Only add these fields if they have values
+  if (tagImageUrl) {
+    tagData.tagImageUrl = tagImageUrl;
+  }
+  
+  if (tagStoragePath) {
+    tagData.tagStoragePath = tagStoragePath;
+  }
   
   const newTagRef = doc(tagsRef);
   await setDoc(newTagRef, tagData);
@@ -1240,12 +1273,15 @@ export async function updateTag(
     updatedAt: serverTimestamp()
   };
   
+  // Only add non-undefined or non-null fields to the update
   if (details !== undefined) updateData.details = details;
   if (notes !== undefined) updateData.notes = notes;
   if (positionX !== undefined) updateData.positionX = positionX;
   if (positionY !== undefined) updateData.positionY = positionY;
-  if (tagImageUrl !== undefined) updateData.tagImageUrl = tagImageUrl;
-  if (tagStoragePath !== undefined) updateData.tagStoragePath = tagStoragePath;
+  
+  // For these fields, only add if they have actual values (not undefined or null)
+  if (tagImageUrl) updateData.tagImageUrl = tagImageUrl;
+  if (tagStoragePath) updateData.tagStoragePath = tagStoragePath;
   
   await updateDoc(tagRef, updateData);
 }
