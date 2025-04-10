@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { MetaHelmet } from "@/components/meta-helmet";
 import { 
   Card, 
   CardContent, 
@@ -261,6 +262,10 @@ export default function AreasPage() {
   
   return (
     <div className="container mx-auto p-4 pb-20">
+      <MetaHelmet 
+        title="Manage Your Spaces – PaintSnap Area View"
+        description="Browse your Areas and keep paint details at your fingertips. From living rooms to hallways, PaintSnap helps you stay organised across every part of your property."
+      />
       <div className="flex justify-between items-center mb-6">
         <div>
           <div className="flex items-center">

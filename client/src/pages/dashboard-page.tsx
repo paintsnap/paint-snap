@@ -5,6 +5,7 @@ import { useProject } from "@/hooks/use-project";
 import { useAreas } from "@/hooks/use-firebase-data";
 import { FirebasePermissionError } from "@/components/firebase-permission-error";
 import { Loader2 } from "lucide-react";
+import { MetaHelmet } from "@/components/meta-helmet";
 
 export default function DashboardPage() {
   const { isLoading: authLoading } = useAuth();
@@ -47,6 +48,10 @@ export default function DashboardPage() {
   // Show a loading indicator while waiting
   return (
     <div className="flex items-center justify-center h-screen">
+      <MetaHelmet 
+        title="Your PaintSnap Dashboard – See All Your Tracked Spaces at a Glance"
+        description="Instantly view your saved Areas, photos, and tags. The PaintSnap dashboard gives you a clear overview of your project—so you know what's been painted and what needs attention."
+      />
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );

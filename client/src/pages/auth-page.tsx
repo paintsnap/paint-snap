@@ -143,6 +143,10 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] flex flex-col md:flex-row">
+      <MetaHelmet 
+        title="Log In or Create Your PaintSnap Account – Start Tracking Your Paint Projects"
+        description="Access your paint records and add new photos in seconds. Log in or sign up to start organising your spaces with PaintSnap—your smart paint memory tool."
+      />
       {/* Left side - Authentication forms */}
       <div className="flex-1 flex items-center justify-center p-6">
         <Card className="w-full max-w-md border-[var(--color-primary-light)] shadow-lg">
