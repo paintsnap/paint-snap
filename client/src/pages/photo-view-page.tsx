@@ -155,7 +155,9 @@ export default function PhotoViewPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [, params] = useRoute("/photos/:id");
-  const photoId = params?.id ? parseInt(params.id) : null;
+  
+  // Keep photoId as string since Firebase uses string IDs
+  const photoId = params?.id || null;
   
   const [activeTagId, setActiveTagId] = useState<number | null>(null);
   const [isAddingTag, setIsAddingTag] = useState<boolean>(false);
@@ -182,12 +184,16 @@ export default function PhotoViewPage() {
   const { currentProject } = useProject();
   const projectId = currentProject?.id || '';
   
+  // Add some logging to debug photo retrieval
+  console.log("PhotoViewPage: Attempting to fetch photo with ID:", photoId);
+  console.log("PhotoViewPage: Current project ID:", projectId);
+  
   // Query to fetch the photo with its tags using Firebase
   const { 
     data: photoData,
     isLoading: isPhotoLoading, 
     error: photoError 
-  } = usePhotoWithTags(projectId, photoId?.toString() || '');
+  } = usePhotoWithTags(projectId, photoId || '');
   
   // Convert the Firebase photo data to the expected format
   const photo = useMemo(() => {
