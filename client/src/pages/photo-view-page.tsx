@@ -195,8 +195,9 @@ export default function PhotoViewPage() {
     
     const { photo, tags } = photoData;
     
-    // Create a compatible PhotoWithTagsDetailed object from Firebase data
-    return {
+    // Create a compatible object from Firebase data and force type as PhotoWithTagsDetailed
+    // We need to do this because Firebase tags and our schema Tags have slight differences
+    const convertedPhoto = {
       id: Number(photo.id),
       userId: Number(photo.userId),
       areaId: Number(photo.areaId),
@@ -207,8 +208,10 @@ export default function PhotoViewPage() {
       lastModified: photo.lastModified.toDate(),
       tagCount: tags.length,
       areaName: photo.areaName || "",
-      tags: tags || [],
-    } as PhotoWithTagsDetailed;
+      tags: tags || []
+    };
+    
+    return convertedPhoto as unknown as PhotoWithTagsDetailed;
   }, [photoData]);
   
   const isLoading = isPhotoLoading;
@@ -442,10 +445,14 @@ export default function PhotoViewPage() {
   }
   
   if (error || !photo) {
+    const errorMessage = typeof error === 'string' 
+      ? error 
+      : error?.message || "Photo not found";
+    
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
-          Failed to load photo: {error?.message || "Photo not found"}
+          Failed to load photo: {errorMessage}
         </div>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
           <ChevronLeft className="w-4 h-4 mr-2" />
