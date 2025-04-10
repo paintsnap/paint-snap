@@ -135,11 +135,11 @@ function TagDetailsSidebar({
           </div>
         )}
         
-        {tag.tagImage && (
+        {tag.tagImageUrl && (
           <div className="mb-4">
             <h4 className="text-sm font-medium mb-1">Image</h4>
             <img 
-              src={`data:image/jpeg;base64,${tag.tagImage}`}
+              src={tag.tagImageUrl}
               alt="Tag attachment"
               className="w-full max-h-48 object-contain border rounded-md"
             />
@@ -327,7 +327,14 @@ export default function PhotoViewPage() {
         tagImage
       );
     },
-    onSuccess: () => {
+    onSuccess: (updatedTag) => {
+      // Update local tags to show changes immediately
+      setLocalTags(prevTags => 
+        prevTags.map(tag => 
+          tag.id === updatedTag.id ? updatedTag : tag
+        )
+      );
+      
       // Invalidate the Firebase cache using the correct query key
       queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
@@ -358,7 +365,10 @@ export default function PhotoViewPage() {
       
       return deleteTag(projectId, photoId.toString(), tagId.toString());
     },
-    onSuccess: () => {
+    onSuccess: (deletedTagId) => {
+      // Update local tags to remove the deleted tag immediately
+      setLocalTags(prevTags => prevTags.filter(tag => tag.id !== deletedTagId));
+      
       // Invalidate the Firebase cache with the correct query key
       queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
