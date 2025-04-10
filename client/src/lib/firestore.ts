@@ -486,8 +486,9 @@ export async function getPhotos(projectId: string, constraints: QueryConstraint[
   }
 }
 
-export async function getPhotosByArea(projectId: string, areaId: string): Promise<Photo[]> {
-  return getPhotos(projectId, [where("areaId", "==", areaId)]);
+export async function getPhotosByArea(projectId: string, areaId: string): Promise<PhotoWithTags[]> {
+  // Update to use getPhotosWithTagCount instead of getPhotos to include tag counts
+  return getPhotosWithTagCount(projectId, [where("areaId", "==", areaId)]);
 }
 
 export async function getPhotosByUser(projectId: string, userId: string): Promise<Photo[]> {

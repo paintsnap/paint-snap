@@ -124,9 +124,9 @@ export function useAreas(projectId: string) {
   );
 }
 
-// Hook for fetching photos by area
+// Hook for fetching photos by area with tag counts
 export function usePhotosByArea(projectId: string, areaId: string) {
-  return useFirebaseData<Photo[]>(
+  return useFirebaseData<PhotoWithTags[]>(
     async () => {
       if (!projectId || !areaId) return [];
       return await getPhotosByArea(projectId, areaId);
