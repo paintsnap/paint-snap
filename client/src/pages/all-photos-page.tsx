@@ -151,8 +151,16 @@ export default function AllPhotosPage() {
   }
   
   if (photosError) {
-    // Use our user-friendly error component
-    return <DataError onRetry={() => refetchPhotos()} />;
+    // Log the error details to console for developers
+    console.error("Error loading all photos:", photosError);
+    
+    // Use our user-friendly error component with a specific message
+    return (
+      <DataError 
+        message="We couldn't load your photos. Please try again." 
+        onRetry={() => refetchPhotos()} 
+      />
+    );
   }
   
   return (

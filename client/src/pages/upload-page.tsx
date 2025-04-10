@@ -4,7 +4,7 @@ import { useProject } from "@/hooks/use-project";
 import { useAreas } from "@/hooks/use-firebase-data";
 import { uploadPhoto } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -27,6 +27,7 @@ import { Camera, Upload, ImagePlus, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { DataError } from "@/components/data-error";
 
 // Form schema for uploading a photo
 const uploadFormSchema = z.object({
@@ -240,6 +241,26 @@ export default function UploadPage() {
     return (
       <div className="container mx-auto p-4 flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin w-6 h-6 border-2 border-primary rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
+  
+  // Handle any errors with areas
+  if (areasError) {
+    // Log the error details to console for developers
+    console.error("Error loading areas on upload page:", areasError);
+    
+    // Use our user-friendly error component
+    return (
+      <div className="container mx-auto p-4">
+        <DataError 
+          message="We couldn't load your areas. Please try again." 
+          onRetry={() => window.location.reload()} 
+        />
+        <Button variant="outline" className="mt-4" onClick={goBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Go Back
+        </Button>
       </div>
     );
   }
