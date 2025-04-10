@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Camera, LogIn, Mail, User, KeyRound, AlertCircle, Loader2 } from "lucide-react";
+import { LogIn, Mail, User, KeyRound, AlertCircle, Loader2 } from "lucide-react";
+import logoIcon from "@assets/PaintSnap-Icon.png";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
@@ -146,7 +147,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-md border-[var(--color-primary-light)] shadow-lg">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
-              <Camera className="h-6 w-6 text-[var(--color-primary)]" />
+              <img src={logoIcon} alt="PaintSnap" className="h-8 w-8" />
               <h2 className="text-xl font-semibold text-center text-[var(--color-primary)]">PaintSnap</h2>
             </div>
             <CardTitle className="text-2xl">
@@ -406,7 +407,7 @@ export default function AuthPage() {
       {/* Right side - Hero section */}
       <div className="hidden md:flex flex-1 p-6 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] text-white flex-col justify-center px-12">
         <div className="max-w-md mx-auto">
-          <Camera className="h-16 w-16 mb-6" />
+          <img src={logoIcon} alt="PaintSnap" className="h-24 w-24 mb-6" />
           <h1 className="text-4xl mb-4">PaintSnap</h1>
           <p className="text-xl mb-8">
             Document your interior designs with precision annotations and detailed notes directly on your photos.

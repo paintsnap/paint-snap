@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import { Home, Plus, Grid, LogOut, Camera, Mail, AlertTriangle, X } from "lucide-react";
 import logoImage from "@assets/PaintSnap-Full-Logo-sm.png";
 import logoImageLight from "@assets/PaintSnap-Full-Logo-light-sm.png";
+import logoIcon from "@assets/PaintSnap-Icon.png";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -81,10 +82,10 @@ function TopNavigation() {
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-14 items-center">
+      <div className="container flex h-16 items-center">
         <div className="flex items-center gap-2">
           <a href="/dashboard" onClick={handleHomeClick} className="flex items-center gap-2">
-            <img src={logoImage} alt="PaintSnap" className="h-8" />
+            <img src={logoImage} alt="PaintSnap" className="h-12" />
           </a>
         </div>
         

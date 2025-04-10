@@ -25,7 +25,7 @@ export default function LandingPage() {
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <img src={logoImageLight} alt="PaintSnap" className="h-8" />
+            <img src={logoImageLight} alt="PaintSnap" className="h-12" />
           </div>
           <div className="flex gap-4">
             <Button 
