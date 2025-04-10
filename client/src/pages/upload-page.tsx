@@ -403,9 +403,69 @@ export default function UploadPage() {
               
               {/* No Photo Name field required */}
               
-              {/* Test Storage Upload Button */}
-              {imagePreview && (
-                <div className="pb-4">
+              {/* Test Storage Buttons */}
+              <div className="pb-4 space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Storage Tests</h3>
+                
+                {/* Minimal Text Upload Test */}
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className="w-full"
+                  disabled={isUploading}
+                  onClick={async () => {
+                    setIsUploading(true);
+                    
+                    // Add a manual timeout to prevent UI from freezing indefinitely
+                    const timeoutId = setTimeout(() => {
+                      console.log("Manual upload timeout triggered from UI");
+                      setIsUploading(false);
+                      toast({
+                        title: "Minimal Text Upload Timed Out",
+                        description: "The upload is taking too long. Firebase Storage rules might be preventing uploads.",
+                        variant: "destructive",
+                      });
+                    }, 10000); // 10 second timeout
+                    
+                    try {
+                      console.log("Testing minimal text upload to Firebase Storage");
+                      
+                      const downloadUrl = await testMinimalUpload();
+                      
+                      if (downloadUrl) {
+                        console.log("Minimal text upload successful! URL:", downloadUrl);
+                        
+                        toast({
+                          title: "Text Upload Success",
+                          description: "A simple text file was uploaded to Firebase Storage. Basic connectivity works!",
+                        });
+                      } else {
+                        toast({
+                          title: "Text Upload Failed",
+                          description: "The minimal text upload failed. Check console for details.",
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (error: any) {
+                      console.error("Minimal text upload error:", error);
+                      
+                      toast({
+                        title: "Text Upload Error",
+                        description: error.message || "Failed to upload text to Firebase Storage",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      clearTimeout(timeoutId);
+                      setIsUploading(false);
+                    }
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Test Minimal Text Upload
+                </Button>
+                
+                {/* Image Upload Test - Only show if an image is selected */}
+                {imagePreview && (
                   <Button 
                     type="button" 
                     variant="secondary"
@@ -470,10 +530,11 @@ export default function UploadPage() {
                       }
                     }}
                   >
-                    Test Storage Upload
+                    <Camera className="w-4 h-4 mr-2" />
+                    Test Image Upload
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
               
               <div className="flex space-x-4">
                 <Button 
