@@ -1204,7 +1204,7 @@ export async function updateTag(
   positionX?: number,
   positionY?: number,
   tagImage?: File
-): Promise<void> {
+): Promise<Tag> {
   const tag = await getTag(projectId, photoId, tagId);
   if (!tag) {
     throw new Error("Tag not found");
@@ -1284,9 +1284,25 @@ export async function updateTag(
   if (tagStoragePath) updateData.tagStoragePath = tagStoragePath;
   
   await updateDoc(tagRef, updateData);
+  
+  // Return the updated tag object
+  return {
+    id: tagId,
+    photoId,
+    userId: tag.userId,
+    description,
+    details: details ?? tag.details,
+    notes: notes ?? tag.notes,
+    positionX: positionX ?? tag.positionX,
+    positionY: positionY ?? tag.positionY,
+    tagImageUrl: tagImageUrl,
+    tagStoragePath: tagStoragePath,
+    createdAt: tag.createdAt,
+    updatedAt: Timestamp.now()
+  };
 }
 
-export async function deleteTag(projectId: string, photoId: string, tagId: string): Promise<void> {
+export async function deleteTag(projectId: string, photoId: string, tagId: string): Promise<string> {
   // Get tag to delete image if exists
   const tag = await getTag(projectId, photoId, tagId);
   if (tag && tag.tagStoragePath) {
@@ -1301,6 +1317,9 @@ export async function deleteTag(projectId: string, photoId: string, tagId: strin
   // Delete tag document
   const tagRef = doc(getTagsRef(projectId, photoId), tagId);
   await deleteDoc(tagRef);
+  
+  // Return the tag ID that was deleted
+  return tagId;
 }
 
 // Function to log Firebase permissions

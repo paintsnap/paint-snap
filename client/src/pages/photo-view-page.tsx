@@ -135,11 +135,11 @@ function TagDetailsSidebar({
           </div>
         )}
         
-        {tag.tagImageUrl && (
+        {tag.tagImage && (
           <div className="mb-4">
             <h4 className="text-sm font-medium mb-1">Image</h4>
             <img 
-              src={tag.tagImageUrl}
+              src={tag.tagImage}
               alt="Tag attachment"
               className="w-full max-h-48 object-contain border rounded-md"
             />
@@ -208,35 +208,47 @@ export default function PhotoViewPage() {
   
   // Convert the Firebase photo data to the expected format
   const photo = useMemo(() => {
-    if (!photoData) {
+    if (!photoData || !photoData.photo) {
       console.log("PhotoViewPage: No photo data returned from Firebase");
-      return undefined;
+      return {
+        id: 0,
+        userId: 0,
+        areaId: 0,
+        name: "",
+        filename: "untitled",
+        imageUrl: "",
+        uploadDate: new Date(),
+        lastModified: new Date(),
+        tagCount: 0,
+        areaName: "Unknown Area",
+        tags: [] 
+      } as unknown as PhotoWithTagsDetailed;
     }
     
     const { photo, tags } = photoData;
     
     console.log("PhotoViewPage: Raw photo data received:", {
-      photoId: photo.id,
-      imageUrl: photo.imageUrl,
-      areaId: photo.areaId
+      photoId: photo?.id,
+      imageUrl: photo?.imageUrl,
+      areaId: photo?.areaId
     });
     
     // Create a compatible object from Firebase data and force type as PhotoWithTagsDetailed
     // We need to do this because Firebase tags and our schema Tags have slight differences
     // Also include safe fallbacks for potentially missing data
     const convertedPhoto = {
-      id: Number(photo.id) || 0,
-      userId: Number(photo.userId) || 0,
-      areaId: Number(photo.areaId) || 0,
-      name: photo.name || "",
-      filename: photo.name || "untitled", // Use name as filename
-      imageUrl: photo.imageUrl || "",
-      uploadDate: photo.uploadDate?.toDate() || new Date(),
-      lastModified: photo.lastModified?.toDate() || new Date(),
-      tagCount: localTags.length || 0, // Use local tags length instead
+      id: Number(photo?.id) || 0,
+      userId: Number(photo?.userId) || 0,
+      areaId: Number(photo?.areaId) || 0,
+      name: photo?.name || "",
+      filename: photo?.name || "untitled", // Use name as filename
+      imageUrl: photo?.imageUrl || "",
+      uploadDate: photo?.uploadDate?.toDate() || new Date(),
+      lastModified: photo?.lastModified?.toDate() || new Date(),
+      tagCount: localTags?.length || 0, // Use local tags length instead
       // The photo might have areaName property if it was enriched by the backend query
       // If not, we'll use a generic name
-      areaName: (photo as any).areaName || "Unknown Area",
+      areaName: (photo as any)?.areaName || "Unknown Area",
       tags: localTags || [] // Use local tags instead of the ones from photoData
     };
     
