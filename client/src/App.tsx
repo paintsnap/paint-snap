@@ -79,7 +79,7 @@ function TopNavigation() {
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container flex h-14 items-center">
         <div className="flex items-center gap-2">
           <a href="/dashboard" onClick={handleHomeClick} className="flex items-center gap-2">
             <Camera className="h-6 w-6 text-primary" />
@@ -177,8 +177,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen pb-16">
       <TopNavigation />
-      <div className="container pt-4">
-        <EmailVerificationBanner />
+      <div className="flex justify-center w-full pt-4">
+        <div className="container max-w-4xl">
+          <EmailVerificationBanner />
+        </div>
       </div>
       {children}
       <BottomNavigation />
