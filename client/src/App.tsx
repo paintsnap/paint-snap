@@ -128,7 +128,7 @@ function EmailVerificationBanner() {
   };
   
   return (
-    <Alert variant="warning" className="mb-4 border-amber-500 bg-amber-50">
+    <Alert className="mb-4 border border-amber-500 bg-amber-50">
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-2">
           <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-600" />
