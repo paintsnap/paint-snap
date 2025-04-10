@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { MetaHelmet } from "@/components/meta-helmet";
 
 // Define the schemas for login and register forms
 const loginSchema = z.object({

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Palette, Home, Pin, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { MetaHelmet } from "@/components/meta-helmet";
 // Import background image and logos
 import backgroundImage from "@assets/background-room.jpg";
 import logoImageLight from "@assets/PaintSnap-Full-Logo-light-sm.png";
@@ -21,6 +22,10 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaHelmet 
+        title="PaintSnap – Remember Every Wall. Track Every Colour."
+        description="PaintSnap helps decorators, landlords and homeowners stay on top of every wall, surface and colour. Snap, tag and organise your painted spaces—so you never lose track of what's been painted, when, and with what."
+      />
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
