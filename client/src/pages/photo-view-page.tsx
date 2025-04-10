@@ -197,23 +197,35 @@ export default function PhotoViewPage() {
   
   // Convert the Firebase photo data to the expected format
   const photo = useMemo(() => {
-    if (!photoData) return undefined;
+    if (!photoData) {
+      console.log("PhotoViewPage: No photo data returned from Firebase");
+      return undefined;
+    }
     
     const { photo, tags } = photoData;
     
+    console.log("PhotoViewPage: Raw photo data received:", {
+      photoId: photo.id,
+      imageUrl: photo.imageUrl,
+      areaId: photo.areaId
+    });
+    
     // Create a compatible object from Firebase data and force type as PhotoWithTagsDetailed
     // We need to do this because Firebase tags and our schema Tags have slight differences
+    // Also include safe fallbacks for potentially missing data
     const convertedPhoto = {
-      id: Number(photo.id),
-      userId: Number(photo.userId),
-      areaId: Number(photo.areaId),
-      name: photo.name,
-      filename: photo.name, // Use name as filename
-      imageUrl: photo.imageUrl,
-      uploadDate: photo.uploadDate.toDate(),
-      lastModified: photo.lastModified.toDate(),
-      tagCount: tags.length,
-      areaName: photo.areaName || "",
+      id: Number(photo.id) || 0,
+      userId: Number(photo.userId) || 0,
+      areaId: Number(photo.areaId) || 0,
+      name: photo.name || "",
+      filename: photo.name || "untitled", // Use name as filename
+      imageUrl: photo.imageUrl || "",
+      uploadDate: photo.uploadDate?.toDate() || new Date(),
+      lastModified: photo.lastModified?.toDate() || new Date(),
+      tagCount: tags?.length || 0,
+      // The photo might have areaName property if it was enriched by the backend query
+      // If not, we'll use a generic name
+      areaName: (photo as any).areaName || "Unknown Area",
       tags: tags || []
     };
     
@@ -451,18 +463,25 @@ export default function PhotoViewPage() {
   }
   
   if (error || !photo) {
-    const errorMessage = typeof error === 'string' 
-      ? error 
-      : error?.message || "Photo not found";
+    // Handle different error types safely
+    let errorMessage = "Photo not found";
+    
+    if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = (error as any).message;
+    }
+    
+    console.log("PhotoViewPage: Error loading photo:", { error, photoId });
     
     return (
       <div className="container mx-auto p-4">
         <div className="bg-destructive/20 p-4 rounded-md text-destructive">
           Failed to load photo: {errorMessage}
         </div>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/areas")}>
           <ChevronLeft className="w-4 h-4 mr-2" />
-          Back to Home
+          Back to Areas
         </Button>
       </div>
     );

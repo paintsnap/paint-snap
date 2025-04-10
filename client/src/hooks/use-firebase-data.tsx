@@ -23,12 +23,12 @@ function useFirebaseData<T>(
 ): {
   data: T | null;
   isLoading: boolean;
-  error: string | null;
+  error: unknown;  // Changed from string | null to unknown to properly reflect all possible error types
   refetch: () => void;
 } {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const { toast } = useToast();
   
   // For manual refetching
