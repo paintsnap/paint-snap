@@ -103,8 +103,8 @@ function TagMarker({
   );
 }
 
-// Tag details sidebar component
-function TagDetailsSidebar({ 
+// Tag details component
+function TagDetails({ 
   tag, 
   onClose 
 }: { 
@@ -112,40 +112,39 @@ function TagDetailsSidebar({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute right-0 top-0 h-full bg-background border-l border-border w-full max-w-md shadow-lg overflow-y-auto">
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold">{tag.description}</h3>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        {tag.details && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-1">Details</h4>
-            <p className="text-sm">{tag.details}</p>
-          </div>
-        )}
-        
-        {tag.notes && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-1">Notes</h4>
-            <p className="text-sm">{tag.notes}</p>
-          </div>
-        )}
-        
-        {tag.tagImage && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-1">Image</h4>
-            <img 
-              src={tag.tagImage}
-              alt="Tag attachment"
-              className="w-full max-h-48 object-contain border rounded-md"
-            />
-          </div>
-        )}
+    <div className="border rounded-md p-4 bg-background shadow-md relative">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold">{tag.description}</h3>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-5 w-5" />
+        </Button>
       </div>
+      
+      {tag.details && (
+        <div className="mb-4">
+          <h4 className="text-sm font-medium mb-1">Details</h4>
+          <p className="text-sm">{tag.details}</p>
+        </div>
+      )}
+      
+      {tag.notes && (
+        <div className="mb-4">
+          <h4 className="text-sm font-medium mb-1">Notes</h4>
+          <p className="text-sm">{tag.notes}</p>
+        </div>
+      )}
+      
+      {/* Support both tagImageUrl (from Firebase) and tagImage (from schema) */}
+      {((tag as any).tagImageUrl || tag.tagImage) && (
+        <div className="mb-4">
+          <h4 className="text-sm font-medium mb-1">Paint Sample Image</h4>
+          <img 
+            src={(tag as any).tagImageUrl || tag.tagImage || ''}
+            alt="Tag attachment"
+            className="w-full max-h-48 object-contain border rounded-md"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -582,13 +581,7 @@ export default function PhotoViewPage() {
             />
           ))}
           
-          {/* Active Tag Details Sidebar */}
-          {activeTagId && (
-            <TagDetailsSidebar 
-              tag={photo.tags.find(t => t.id === activeTagId)!}
-              onClose={() => setActiveTagId(null)}
-            />
-          )}
+          {/* We don't need the sidebar overlay anymore - it will be displayed below */}
         </div>
         
         {/* Tag List Below */}
@@ -648,6 +641,16 @@ export default function PhotoViewPage() {
             </div>
           )}
         </div>
+        
+        {/* Active Tag Details - Show below the tag list instead of as a sidebar overlay */}
+        {activeTagId && (
+          <div className="mt-6">
+            <TagDetails 
+              tag={photo.tags.find(t => t.id === activeTagId) as any}
+              onClose={() => setActiveTagId(null)}
+            />
+          </div>
+        )}
       </div>
       
       {/* Tag Form Dialog */}
