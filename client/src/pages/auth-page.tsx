@@ -346,8 +346,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-lg">Organized Gallery</h3>
-                <p className="text-white/80">Keep all your annotated photos organized in one place</p>
+                <h3 className="font-medium text-lg">Organised Gallery</h3>
+                <p className="text-white/80">Keep all your annotated photos organised in one place</p>
               </div>
             </div>
             

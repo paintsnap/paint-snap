@@ -118,11 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-      
-      toast({
-        title: "Success",
-        description: "Signed in successfully"
-      });
     } catch (error) {
       console.error("Error signing in with Google:", error);
       const authError = error as AuthError;
@@ -146,11 +141,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      
-      toast({
-        title: "Success",
-        description: "Signed in successfully"
-      });
     } catch (error) {
       console.error("Error signing in with email:", error);
       const authError = error as AuthError;
@@ -258,11 +248,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Reset local state
       setProfile(null);
-      
-      toast({
-        title: "Success",
-        description: "Signed out successfully"
-      });
     } catch (error) {
       console.error("Error signing out:", error);
       
