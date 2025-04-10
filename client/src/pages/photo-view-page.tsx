@@ -356,8 +356,8 @@ export default function PhotoViewPage() {
       return deleteTag(projectId, photoId.toString(), tagId.toString());
     },
     onSuccess: () => {
-      // Invalidate the Firebase cache
-      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+      // Invalidate the Firebase cache with the correct query key
+      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
       toast({
         title: "Tag deleted",
