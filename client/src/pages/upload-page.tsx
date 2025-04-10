@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProject } from "@/hooks/use-project";
 import { useAreas } from "@/hooks/use-firebase-data";
 import { uploadPhoto } from "@/lib/firestore";
+import { testStorageUpload } from "@/lib/storage-test";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -400,6 +401,57 @@ export default function UploadPage() {
               )}
               
               {/* No Photo Name field required */}
+              
+              {/* Test Storage Upload Button */}
+              {imagePreview && (
+                <div className="pb-4">
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    className="w-full"
+                    disabled={isUploading || !imagePreview}
+                    onClick={async () => {
+                      if (!user || !currentProject || !form.getValues("imageFile")) return;
+                      
+                      setIsUploading(true);
+                      try {
+                        const photoFile = form.getValues("imageFile");
+                        console.log("Testing direct storage upload with:", {
+                          projectId: currentProject.id,
+                          userId: user.uid,
+                          fileType: photoFile.type,
+                          fileSize: photoFile.size
+                        });
+                        
+                        const downloadUrl = await testStorageUpload(
+                          currentProject.id, 
+                          user.uid, 
+                          photoFile
+                        );
+                        
+                        console.log("Test upload successful! URL:", downloadUrl);
+                        
+                        toast({
+                          title: "Storage Test Success",
+                          description: "The image was successfully uploaded to Firebase Storage.",
+                        });
+                      } catch (error: any) {
+                        console.error("Storage test upload error:", error);
+                        
+                        toast({
+                          title: "Storage Test Failed",
+                          description: error.message || "Failed to upload to Firebase Storage",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }}
+                  >
+                    Test Storage Upload
+                  </Button>
+                </div>
+              )}
               
               <div className="flex space-x-4">
                 <Button 
