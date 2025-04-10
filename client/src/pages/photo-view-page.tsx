@@ -1,10 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { PhotoWithTagsDetailed, Tag, InsertTag } from "@shared/schema";
+import { PhotoWithTagsDetailed, Tag, InsertTag, Photo } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
+import { usePhotoWithTags } from "@/hooks/use-firebase-data";
+import { useProject } from "@/hooks/use-project";
+import { createTag, updateTag, deleteTag } from "@/lib/firestore";
+import { Timestamp } from "firebase/firestore";
 import { 
   Dialog, 
   DialogContent, 
@@ -190,8 +194,19 @@ export default function PhotoViewPage() {
     if (!photoData) return undefined;
     
     const { photo, tags } = photoData;
+    
+    // Create a compatible PhotoWithTagsDetailed object from Firebase data
     return {
-      ...photo,
+      id: Number(photo.id),
+      userId: Number(photo.userId),
+      areaId: Number(photo.areaId),
+      name: photo.name,
+      filename: photo.name, // Use name as filename
+      imageUrl: photo.imageUrl,
+      uploadDate: photo.uploadDate.toDate(),
+      lastModified: photo.lastModified.toDate(),
+      tagCount: tags.length,
+      areaName: photo.areaName || "",
       tags: tags || [],
     } as PhotoWithTagsDetailed;
   }, [photoData]);
@@ -199,23 +214,38 @@ export default function PhotoViewPage() {
   const isLoading = isPhotoLoading;
   const error = photoError;
   
-  // Mutation to create a new tag
+  // Mutation to create a new tag with Firebase
   const createTagMutation = useMutation({
-    mutationFn: async (tagData: FormData) => {
-      const res = await fetch(`/api/photos/${photoId}/tags`, {
-        method: 'POST',
-        body: tagData,
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create tag");
+    mutationFn: async (tagData: {
+      description: string;
+      details: string;
+      notes: string;
+      positionX: number;
+      positionY: number;
+      tagImage?: File;
+    }) => {
+      if (!profile?.id || !photoId || !projectId) {
+        throw new Error("Missing required data");
       }
       
-      return res.json();
+      const { description, details, notes, positionX, positionY, tagImage } = tagData;
+      
+      return createTag(
+        projectId,
+        photoId.toString(),
+        profile.id.toString(),
+        description,
+        details,
+        notes,
+        positionX,
+        positionY,
+        tagImage
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/photos/${photoId}`] });
+      // Invalidate the Firebase cache by refreshing the query
+      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+      
       toast({
         title: "Tag added",
         description: "Your tag has been added successfully.",
@@ -233,23 +263,39 @@ export default function PhotoViewPage() {
     },
   });
   
-  // Mutation to update a tag
+  // Mutation to update a tag with Firebase
   const updateTagMutation = useMutation({
-    mutationFn: async ({ tagId, data }: { tagId: number; data: FormData }) => {
-      const res = await fetch(`/api/photos/${photoId}/tags/${tagId}`, {
-        method: 'PATCH',
-        body: data,
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update tag");
+    mutationFn: async ({ tagId, data }: { 
+      tagId: number; 
+      data: {
+        description: string;
+        details: string;
+        notes: string;
+        tagImage?: File;
+      } 
+    }) => {
+      if (!projectId || !photoId) {
+        throw new Error("Missing project or photo ID");
       }
       
-      return res.json();
+      const { description, details, notes, tagImage } = data;
+      
+      return updateTag(
+        projectId,
+        photoId.toString(),
+        tagId.toString(),
+        description,
+        details,
+        notes,
+        undefined, // positionX - keep the same
+        undefined, // positionY - keep the same
+        tagImage
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/photos/${photoId}`] });
+      // Invalidate the Firebase cache
+      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+      
       toast({
         title: "Tag updated",
         description: "Your tag has been updated successfully.",
@@ -268,14 +314,19 @@ export default function PhotoViewPage() {
     },
   });
   
-  // Mutation to delete a tag
+  // Mutation to delete a tag with Firebase
   const deleteTagMutation = useMutation({
     mutationFn: async (tagId: number) => {
-      const res = await apiRequest("DELETE", `/api/photos/${photoId}/tags/${tagId}`);
-      return res.json();
+      if (!projectId || !photoId) {
+        throw new Error("Missing project or photo ID");
+      }
+      
+      return deleteTag(projectId, photoId.toString(), tagId.toString());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/photos/${photoId}`] });
+      // Invalidate the Firebase cache
+      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+      
       toast({
         title: "Tag deleted",
         description: "The tag has been deleted successfully.",
@@ -308,39 +359,29 @@ export default function PhotoViewPage() {
   
   // Handle submission of the tag form
   const onSubmitTag = (values: TagFormValues) => {
-    if (!profile || !photoId) return;
-    
-    const formData = new FormData();
+    if (!profile || !photoId || !projectId) return;
     
     if (isEditing && selectedTag) {
-      // Update existing tag
-      formData.append("description", values.description);
-      formData.append("details", values.details || "");
-      formData.append("notes", values.notes || "");
-      
-      if (values.tagImage instanceof File) {
-        formData.append("tagImage", values.tagImage);
-      }
-      
+      // Update existing tag with Firebase
       updateTagMutation.mutate({ 
         tagId: selectedTag.id, 
-        data: formData 
+        data: {
+          description: values.description,
+          details: values.details || "",
+          notes: values.notes || "",
+          tagImage: values.tagImage instanceof File ? values.tagImage : undefined
+        }
       });
     } else if (tagPosition) {
-      // Create new tag
-      formData.append("userId", profile.id.toString());
-      formData.append("photoId", photoId.toString());
-      formData.append("description", values.description);
-      formData.append("details", values.details || "");
-      formData.append("notes", values.notes || "");
-      formData.append("positionX", tagPosition.x.toString());
-      formData.append("positionY", tagPosition.y.toString());
-      
-      if (values.tagImage instanceof File) {
-        formData.append("tagImage", values.tagImage);
-      }
-      
-      createTagMutation.mutate(formData);
+      // Create new tag with Firebase
+      createTagMutation.mutate({
+        description: values.description,
+        details: values.details || "",
+        notes: values.notes || "",
+        positionX: tagPosition.x,
+        positionY: tagPosition.y,
+        tagImage: values.tagImage instanceof File ? values.tagImage : undefined
+      });
     }
   };
   
