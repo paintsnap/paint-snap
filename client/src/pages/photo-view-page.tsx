@@ -263,9 +263,20 @@ export default function PhotoViewPage() {
         tagImage
       );
     },
-    onSuccess: () => {
-      // Invalidate the Firebase cache by refreshing the query
-      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+    onSuccess: (newTag) => {
+      // Immediately update the UI with the new tag
+      if (photoData && photo && photo.tags) {
+        const updatedTags = [...photo.tags, newTag];
+        
+        // Update the photo data directly in the cache
+        queryClient.setQueryData(['usePhotoWithTags', projectId, photoId], {
+          photo: { ...photo, tagCount: updatedTags.length, tags: updatedTags },
+          tags: updatedTags
+        });
+      }
+      
+      // Also invalidate the query to fetch fresh data
+      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
       toast({
         title: "Tag added",
@@ -314,8 +325,8 @@ export default function PhotoViewPage() {
       );
     },
     onSuccess: () => {
-      // Invalidate the Firebase cache
-      queryClient.invalidateQueries({ queryKey: [projectId, photoId] });
+      // Invalidate the Firebase cache using the correct query key
+      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
       toast({
         title: "Tag updated",
