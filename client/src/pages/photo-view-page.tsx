@@ -137,7 +137,7 @@ function TagDetails({
       {/* Support both tagImageUrl (from Firebase) and tagImage (from schema) */}
       {((tag as any).tagImageUrl || tag.tagImage) && (
         <div className="mb-4">
-          <h4 className="text-sm font-medium mb-1">Paint Sample Image</h4>
+          <h4 className="text-sm font-medium mb-1">Reference Image</h4>
           <img 
             src={(tag as any).tagImageUrl || tag.tagImage || ''}
             alt="Tag attachment"
