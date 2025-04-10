@@ -16,8 +16,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Check for Firebase permission errors
-    const projectPermissionDenied = projectError?.includes?.('permission-denied') || false;
-    const areasPermissionDenied = areasError?.includes?.('permission-denied') || false;
+    let projectPermissionDenied = false;
+    let areasPermissionDenied = false;
+    
+    // Check if projectError is a string that contains 'permission-denied'
+    if (projectError && typeof projectError === 'string') {
+      projectPermissionDenied = projectError.includes('permission-denied');
+    }
+    
+    // Check if areasError is a string that contains 'permission-denied'
+    if (areasError && typeof areasError === 'string') {
+      areasPermissionDenied = areasError.includes('permission-denied');
+    }
     
     if (projectPermissionDenied || areasPermissionDenied) {
       setHasPermissionError(true);

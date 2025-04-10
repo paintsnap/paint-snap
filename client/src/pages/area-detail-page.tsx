@@ -83,11 +83,8 @@ export default function AreaDetailPage() {
   const { data: photosData = [], isLoading: isPhotosLoading, error: photosError, refetch: refetchPhotos } = 
     usePhotosByArea(projectId, areaId || '');
     
-  // Convert photos to PhotoWithTags[]
-  const photos: PhotoWithTags[] = photosData ? photosData.map(photo => ({
-    ...photo,
-    tagCount: (photo as any).tagCount || 0
-  })) : [];
+  // Photos are already PhotoWithTags[] type from our hook
+  const photos: PhotoWithTags[] = photosData || [];
 
   // Find current area object
   const area = areas?.find(a => a.id === areaId);
