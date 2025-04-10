@@ -4,6 +4,7 @@ import { useProject } from "@/hooks/use-project";
 import { useAreas } from "@/hooks/use-firebase-data";
 import { uploadPhoto } from "@/lib/firestore";
 import { testStorageUpload } from "@/lib/storage-test";
+import { testMinimalUpload } from "@/lib/storage-minimal-test";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Upload, ImagePlus, ArrowLeft } from "lucide-react";
+import { Camera, Upload, ImagePlus, ArrowLeft, FileText } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
