@@ -7,7 +7,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   AuthError,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail,
+  sendEmailVerification
 } from "firebase/auth";
 import { 
   auth, 
@@ -31,6 +33,9 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
+  verifyEmail: () => Promise<void>;
+  isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -145,15 +150,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error signing in with email:", error);
       const authError = error as AuthError;
       
-      if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password') {
-        setError("Invalid email or password");
-      } else {
-        setError(authError.message || "Failed to sign in");
+      // Create user-friendly error messages
+      let errorMessage = "Sorry, we couldn't sign you in. Please try again.";
+      let errorTitle = "Sign In Failed";
+      
+      // Map Firebase error codes to user-friendly messages
+      switch (authError.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errorMessage = "The email or password you entered is incorrect. Please try again.";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Please enter a valid email address.";
+          break;
+        case 'auth/user-disabled':
+          errorMessage = "This account has been disabled. Please contact support.";
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = "Too many unsuccessful login attempts. Please try again later or reset your password.";
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = "Network error. Please check your internet connection and try again.";
+          break;
+        default:
+          errorMessage = "Sign in failed. Please check your details and try again.";
       }
       
+      // Set the error for the form
+      setError(errorMessage);
+      
+      // Show toast notification
       toast({
-        title: "Sign In Failed",
-        description: authError.message || "Failed to sign in with email",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -225,17 +255,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error signing up with email:", error);
       const authError = error as AuthError;
       
-      if (authError.code === 'auth/email-already-in-use') {
-        setError("Email already in use");
-      } else if (authError.code === 'auth/weak-password') {
-        setError("Password is too weak");
-      } else {
-        setError(authError.message || "Failed to sign up");
+      // Create user-friendly error messages
+      let errorMessage = "Sorry, we couldn't create your account. Please try again.";
+      let errorTitle = "Registration Failed";
+      
+      // Map Firebase error codes to user-friendly messages
+      switch (authError.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = "This email address is already registered. Please use a different email or try logging in.";
+          break;
+        case 'auth/weak-password':
+          errorMessage = "Please use a stronger password. It should be at least 6 characters long.";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Please enter a valid email address.";
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = "Account creation is currently disabled. Please try again later.";
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = "Network error. Please check your internet connection and try again.";
+          break;
+        default:
+          errorMessage = "Account creation failed. Please check your details and try again.";
       }
       
+      // Set the error for the form
+      setError(errorMessage);
+      
+      // Show toast notification
       toast({
-        title: "Registration Failed",
-        description: authError.message || "Failed to create account",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -259,6 +310,109 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Password reset function
+  const sendPasswordReset = async (email: string) => {
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your email for instructions to reset your password.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error sending password reset:", error);
+      const authError = error as AuthError;
+      
+      // Create user-friendly error messages
+      let errorMessage = "We couldn't send a password reset email. Please try again.";
+      let errorTitle = "Reset Failed";
+      
+      // Map Firebase error codes to user-friendly messages
+      switch (authError.code) {
+        case 'auth/user-not-found':
+          errorMessage = "We couldn't find an account with that email address. Please check and try again.";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Please enter a valid email address.";
+          break;
+        case 'auth/missing-android-pkg-name':
+        case 'auth/missing-continue-uri':
+        case 'auth/missing-ios-bundle-id':
+        case 'auth/invalid-continue-uri':
+        case 'auth/unauthorized-continue-uri':
+          errorMessage = "There's a problem with our password reset system. Please contact support.";
+          break;
+        default:
+          errorMessage = "Password reset failed. Please try again later.";
+      }
+      
+      // Set the error for the form
+      setError(errorMessage);
+      
+      // Show toast notification
+      toast({
+        title: errorTitle,
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      throw error;
+    }
+  };
+  
+  // Email verification function
+  const verifyEmail = async () => {
+    setError(null);
+    if (!user) {
+      setError("You must be logged in to verify your email.");
+      return;
+    }
+    
+    try {
+      await sendEmailVerification(user);
+      
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      const authError = error as AuthError;
+      
+      // Create user-friendly error messages
+      let errorMessage = "We couldn't send a verification email. Please try again later.";
+      let errorTitle = "Verification Failed";
+      
+      // Map Firebase error codes to user-friendly messages
+      switch (authError.code) {
+        case 'auth/too-many-requests':
+          errorMessage = "Too many requests. Please try again later.";
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = "Network error. Please check your internet connection and try again.";
+          break;
+        default:
+          errorMessage = "Verification email failed to send. Please try again later.";
+      }
+      
+      // Set the error for the form
+      setError(errorMessage);
+      
+      // Show toast notification
+      toast({
+        title: errorTitle,
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Check if email is verified
+  const isEmailVerified = user?.emailVerified || false;
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -269,7 +423,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithGoogle, 
       signInWithEmail,
       signUpWithEmail,
-      signOut 
+      signOut,
+      sendPasswordReset,
+      verifyEmail,
+      isEmailVerified
     }}>
       {children}
     </AuthContext.Provider>

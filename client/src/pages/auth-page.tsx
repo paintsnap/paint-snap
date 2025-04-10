@@ -103,7 +103,30 @@ export default function AuthPage() {
     await signUpWithEmail(values.email, values.password, displayName);
   };
 
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot-password">("login");
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Handle forgot password submission
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail || !resetEmail.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsResetting(true);
+    try {
+      await signInWithEmail(resetEmail, resetEmail);
+      setIsResetting(false);
+    } catch (error) {
+      setIsResetting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] flex flex-col md:flex-row">
