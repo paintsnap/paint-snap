@@ -32,28 +32,38 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Enable Firestore offline persistence (helps with brief connectivity issues)
+// Initialize Firestore with better settings for Cloudflare Pages and cross-browser support
 try {
-  // Firebase v9 persistence enablement
-  enableIndexedDbPersistence(db)
-    .then(() => {
-      console.log("Firestore persistence enabled successfully");
-    })
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        // Multiple tabs open, persistence can only be enabled in one tab at a time.
-        console.error('Persistence failed: Multiple tabs open');
-      } else if (err.code === 'unimplemented') {
-        // The current browser does not support all of the features required for persistence
-        console.error('Persistence is not available in this browser');
-      } else {
-        console.error('Error enabling persistence:', err);
-      }
-    });
+  // Only enable persistence in production environment to avoid development issues
+  if (import.meta.env.PROD) {
+    // Enable persistence with default settings
+    // The Firebase v9 API doesn't support synchronizeTabs directly
+    enableIndexedDbPersistence(db)
+      .then(() => {
+        console.log("Firestore persistence enabled successfully");
+      })
+      .catch((err) => {
+        if (err.code === 'failed-precondition') {
+          // Multiple tabs open with different settings, persistence still works in other tabs
+          console.warn('Persistence failed in this tab but may be active in others');
+        } else if (err.code === 'unimplemented') {
+          // The current browser does not support all of the features required for persistence
+          console.warn('Persistence is not available in this browser');
+        } else {
+          console.error('Error enabling persistence:', err);
+        }
+        
+        // Still continue with the app - failed persistence is not critical
+        console.log("Firestore will continue without local persistence");
+      });
+  } else {
+    console.log("Firestore persistence disabled in development environment");
+  }
   
   console.log("Firestore initialized. Error handling for unavailable service implemented.");
 } catch (error) {
   console.error("Error initializing Firestore:", error);
+  console.log("Proceeding with Firestore without persistence");
 }
 
 // Export providers for authentication

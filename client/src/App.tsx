@@ -59,6 +59,8 @@ function BottomNavigation() {
   );
 }
 
+// Top Navigation - Used only in protected routes
+// This ensures we only try to access Auth context when it's available
 function TopNavigation() {
   const { profile, signOut } = useAuth();
   const [, setLocation] = useLocation();

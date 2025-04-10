@@ -185,9 +185,15 @@ export default function UploadPage() {
       if (error.code === 'storage/unauthorized') {
         errorTitle = "Storage permission denied";
         errorDescription = "Your account doesn't have permission to upload files. Please contact the administrator to update Firebase Storage rules.";
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        errorTitle = "Upload failed - Network issue";
+        errorDescription = "The upload failed due to network connectivity issues. Please try again when you have a stronger connection, or try uploading a smaller image.";
       } else if (error.code === 'permission-denied') {
         errorTitle = "Database permission denied";
         errorDescription = "Your account doesn't have permission to write to the database. Please contact the administrator to update Firestore rules.";
+      } else if (error.code === 'storage/canceled') {
+        errorTitle = "Upload cancelled";
+        errorDescription = "The upload was cancelled. Please try again.";
       } else if (error.message && error.message.includes("Firebase Storage")) {
         errorTitle = "Storage error";
         errorDescription = "There was an issue with Firebase Storage. Please try again later or contact support.";
