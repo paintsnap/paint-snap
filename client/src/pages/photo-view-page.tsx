@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -184,6 +184,9 @@ export default function PhotoViewPage() {
   const { currentProject } = useProject();
   const projectId = currentProject?.id || '';
   
+  // Local state to manage tags directly (for immediate UI updates)
+  const [localTags, setLocalTags] = useState<any[]>([]);
+  
   // Add some logging to debug photo retrieval
   console.log("PhotoViewPage: Attempting to fetch photo with ID:", photoId);
   console.log("PhotoViewPage: Current project ID:", projectId);
@@ -192,8 +195,16 @@ export default function PhotoViewPage() {
   const { 
     data: photoData,
     isLoading: isPhotoLoading, 
-    error: photoError 
+    error: photoError,
+    refetch
   } = usePhotoWithTags(projectId, photoId || '');
+  
+  // Sync local tags with remote data when it loads
+  useEffect(() => {
+    if (photoData?.tags) {
+      setLocalTags(photoData.tags);
+    }
+  }, [photoData?.tags]);
   
   // Convert the Firebase photo data to the expected format
   const photo = useMemo(() => {
@@ -222,15 +233,15 @@ export default function PhotoViewPage() {
       imageUrl: photo.imageUrl || "",
       uploadDate: photo.uploadDate?.toDate() || new Date(),
       lastModified: photo.lastModified?.toDate() || new Date(),
-      tagCount: tags?.length || 0,
+      tagCount: localTags.length || 0, // Use local tags length instead
       // The photo might have areaName property if it was enriched by the backend query
       // If not, we'll use a generic name
       areaName: (photo as any).areaName || "Unknown Area",
-      tags: tags || []
+      tags: localTags || [] // Use local tags instead of the ones from photoData
     };
     
     return convertedPhoto as unknown as PhotoWithTagsDetailed;
-  }, [photoData]);
+  }, [photoData, localTags]);
   
   const isLoading = isPhotoLoading;
   const error = photoError;
@@ -264,23 +275,11 @@ export default function PhotoViewPage() {
       );
     },
     onSuccess: (newTag) => {
-      // First invalidate to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
+      // Update local tags immediately to show in the UI
+      setLocalTags(prevTags => [...prevTags, newTag]);
       
-      // Force an immediate optimistic update of the UI
-      if (photoData && photoData.photo && photoData.tags) {
-        const updatedTags = [...photoData.tags, newTag];
-        const updatedPhoto = { 
-          ...photoData.photo, 
-          tagCount: updatedTags.length 
-        };
-        
-        // Update the cache directly for immediate UI update
-        queryClient.setQueryData(['usePhotoWithTags', projectId, photoId], {
-          photo: updatedPhoto,
-          tags: updatedTags
-        });
-      }
+      // Also update the cache in the background
+      queryClient.invalidateQueries({ queryKey: ['usePhotoWithTags', projectId, photoId] });
       
       toast({
         title: "Tag added",
