@@ -669,7 +669,190 @@ export async function uploadPhoto(
     // Log permissions before attempting upload
     await logFirebasePermissions();
     
-    console.log("USING FIRESTORE-ONLY UPLOAD STRATEGY (bypassing Firebase Storage)");
+    // Try to use Firebase Storage first, with a fallback to the old method
+    try {
+      console.log("USING FIREBASE STORAGE UPLOAD STRATEGY");
+      return await uploadPhotoWithStorage(projectId, photoData);
+    } catch (storageError) {
+      console.error("Firebase Storage upload failed, falling back to Firestore-only method:", storageError);
+      console.warn("Using fallback method for compatibility - images will be lower quality!");
+      return await uploadPhotoFirestoreOnly(projectId, photoData);
+    }
+  } catch (error: any) {
+    console.error("Error in photo upload:", error);
+    throw error;
+  }
+}
+
+// New implementation using Firebase Storage for high-quality images
+export async function uploadPhotoWithStorage(
+  projectId: string,
+  photoData: {
+    userId: string,
+    areaId: string,
+    name: string,
+    file: File
+  }
+): Promise<string> {
+  const { userId, areaId, name, file } = photoData;
+  let storageRef = null;
+  let uploadResult = null;
+  
+  try {
+    console.log("Starting Storage upload process for:", {
+      projectId, userId, areaId, fileName: file.name, fileSize: file.size
+    });
+    
+    // Create a storage reference for the full-size image
+    const timestamp = Date.now();
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const storagePath = `uploads/${projectId}/photos/${timestamp}_${userId.substring(0, 8)}.${fileExtension}`;
+    storageRef = ref(storage, storagePath);
+    
+    console.log("Storage reference created:", storagePath);
+    
+    // Create a smaller preview image for quicker loading
+    let previewDataUrl = '';
+    let previewWidth = 0;
+    let previewHeight = 0;
+    
+    try {
+      // Create preview thumbnail
+      const previewBlob = await resizeImage(file, 400, 400, 0.7);
+      
+      // Get dimensions of preview
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          previewWidth = img.width;
+          previewHeight = img.height;
+          URL.revokeObjectURL(img.src);
+          resolve();
+        };
+        img.src = URL.createObjectURL(previewBlob);
+      });
+      
+      // Convert preview to data URL for Firestore
+      const reader = new FileReader();
+      previewDataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(previewBlob);
+      });
+      
+      console.log("Preview image created successfully:", {
+        width: previewWidth,
+        height: previewHeight,
+        dataUrlSize: previewDataUrl.length
+      });
+    } catch (previewError) {
+      console.warn("Error creating preview image:", previewError);
+      // Continue without preview - not critical
+    }
+    
+    // Upload the original full-size file to Firebase Storage
+    console.log("Uploading full-size image to Firebase Storage...");
+    
+    // Add metadata to the upload
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        userId: userId,
+        projectId: projectId,
+        areaId: areaId,
+        originalName: file.name,
+        uploadTime: new Date().toISOString()
+      }
+    };
+    
+    uploadResult = await uploadBytes(storageRef, file, metadata);
+    console.log("Upload completed successfully:", uploadResult);
+    
+    // Get the download URL for the full-size image
+    const imageUrl = await getDownloadURL(uploadResult.ref);
+    console.log("Download URL obtained:", imageUrl);
+    
+    // Create a document reference in Firestore
+    const photosRef = getPhotosRef(projectId);
+    const newPhotoRef = doc(photosRef);
+    const photoId = newPhotoRef.id;
+    
+    // Add metadata to Firestore
+    const firestoreTimestamp = serverTimestamp();
+    const photoDoc = {
+      id: photoId,
+      userId,
+      areaId,
+      projectId,
+      name: name || file.name || "Unnamed photo",
+      filename: file.name,
+      imageUrl: imageUrl, // URL to full-size image in Storage
+      previewUrl: previewDataUrl, // Small base64 thumbnail for quick loading
+      previewWidth,
+      previewHeight,
+      storagePath: storagePath, // Path in Firebase Storage
+      fileType: file.type,
+      fileSize: file.size,
+      uploadDate: firestoreTimestamp,
+      lastModified: firestoreTimestamp,
+      createdAt: firestoreTimestamp,
+      updatedAt: firestoreTimestamp,
+      isEmbedded: false // Using Storage, not embedded base64
+    };
+    
+    // Write to Firestore
+    console.log("Creating Firestore document...");
+    await setDoc(newPhotoRef, photoDoc);
+    console.log("Firestore document created with ID:", photoId);
+    
+    return photoId;
+  } catch (error: any) {
+    console.error("Error in Storage upload process:", error);
+    
+    // Specific error for permission issues
+    if (error.code === 'storage/unauthorized') {
+      console.error(`
+IMPORTANT: Your Firebase Storage security rules need to be updated!
+Current rules are preventing uploads to the path: ${storageRef?.fullPath}
+
+Suggested Storage Rules:
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users full access to storage
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+      `);
+    }
+    
+    // Add partial success info to the error if we uploaded to Storage but Firestore failed
+    if (uploadResult && error.code !== 'storage/unauthorized') {
+      error.photoId = `partial_${Date.now()}`;
+      error.imageUrl = await getDownloadURL(uploadResult.ref).catch(() => null);
+      error.storagePath = storageRef?.fullPath;
+    }
+    
+    throw error;
+  }
+}
+
+// Legacy fallback method that uses Firestore directly
+export async function uploadPhotoFirestoreOnly(
+  projectId: string,
+  photoData: {
+    userId: string,
+    areaId: string,
+    name: string,
+    file: File
+  }
+): Promise<string> {
+  const { userId, areaId, name, file } = photoData;
+  
+  try {
+    console.log("Using FIRESTORE-ONLY UPLOAD STRATEGY (bypassing Firebase Storage)");
     console.log("Creating tiny image for inline Firestore storage...");
     
     // Create a much smaller image for embedding directly in Firestore
@@ -758,41 +941,27 @@ export async function uploadPhoto(
       console.error("Error writing to Firestore:", firestoreError);
       
       if (firestoreError.code === 'permission-denied') {
-        // Generate a local ID since we can't get one from Firestore
-        const localId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        
-        console.warn("Firestore permission denied. Using local workaround with ID:", localId);
         console.error(`
 IMPORTANT: Your Firebase Firestore security rules need to be updated!
-Current rules are preventing writing to the 'projects/${projectId}/photos' collection.
+Current rules are preventing writing to the 'photos' collection.
 
 Suggested Firestore Rules:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow authenticated users to read and write all data
-    // This is a simple rule for development - you may want to restrict access for production
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
   }
 }
         `);
-        
-        // We didn't use storage, so nothing was uploaded successfully
-        throw firestoreError;
       }
       
       throw firestoreError;
     }
   } catch (error: any) {
-    console.error("Error uploading photo:", error);
-    
-    // If the error already has a photoId property, it means we had a partial success
-    // (Storage upload worked but Firestore failed), so just re-throw it
-    if (error.photoId && error.imageUrl) {
-      throw error;
-    }
+    console.error("Error in Firestore-only upload:", error);
     
     // Otherwise wrap the error with a standard message
     const wrappedError = new Error(`Failed to upload photo: ${error.message || "Unknown error"}`);
