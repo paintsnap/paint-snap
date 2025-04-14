@@ -92,14 +92,14 @@ function TopNavigation() {
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-16 items-center">
+      <div className="px-4 flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <a href="/dashboard" onClick={handleHomeClick} className="flex items-center gap-2">
             <img src={logoImage} alt="PaintSnap" className="h-12" />
           </a>
         </div>
         
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -223,10 +223,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen pb-16">
       <TopNavigation />
-      <div className="flex justify-center w-full pt-4">
-        <div className="container max-w-4xl">
-          <EmailVerificationBanner />
-        </div>
+      <div className="px-4 pt-4 w-full max-w-6xl mx-auto">
+        <EmailVerificationBanner />
       </div>
       {children}
       <BottomNavigation />
