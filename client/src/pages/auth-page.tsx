@@ -414,11 +414,11 @@ export default function AuthPage() {
         <div className="max-w-md mx-auto">
           <img src={logoIcon} alt="PaintSnap" className="h-24 w-24 mb-6" />
           <h1 className="text-4xl mb-4">PaintSnap</h1>
-          <p className="text-xl mb-8">
-            Document your interior designs with precision annotations and detailed notes directly on your photos.
+          <p className="text-xl mb-6">
+            The easiest way to remember what paint went where.
           </p>
           
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex items-start">
               <div className="bg-[var(--color-accent)] p-2 rounded-full mr-4">
                 <svg 
@@ -432,8 +432,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-lg">Precise Annotation</h3>
-                <p className="text-white/80">Add markers to specific locations on your photos with detailed notes</p>
+                <h3 className="font-medium text-lg">Start in Seconds</h3>
+                <p className="text-white/80">Snap, tag, and save your first photo in under a minute. No training. No setup. Just get going.</p>
               </div>
             </div>
             
@@ -450,8 +450,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-lg">Organised Gallery</h3>
-                <p className="text-white/80">Keep all your annotated photos organised in one place</p>
+                <h3 className="font-medium text-lg">Stay Organised, Effortlessly</h3>
+                <p className="text-white/80">Keep your colours, finishes and room notes in one tidy place — ready when you need them.</p>
               </div>
             </div>
             
@@ -468,9 +468,14 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-lg">Secure Storage</h3>
-                <p className="text-white/80">All your data is securely stored and accessible only to you</p>
+                <h3 className="font-medium text-lg">Private. Secure. Yours.</h3>
+                <p className="text-white/80">Your data stays yours. Your home, your projects — safely stored and ready whenever you are.</p>
               </div>
+            </div>
+            
+            <div className="mt-8 bg-white/10 rounded-lg p-4 text-center">
+              <p className="text-white/90">Try it free — no card needed, no strings attached.</p>
+              <p className="text-white/90 mt-1">Your future self (or decorator) will thank you.</p>
             </div>
           </div>
         </div>
