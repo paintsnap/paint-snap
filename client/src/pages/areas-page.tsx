@@ -27,6 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { canCreateArea, showLimitWarning } from "@/lib/account-limits";
+import { ACCOUNT_LIMITS } from "@shared/schema";
 import { 
   Form, 
   FormControl, 
@@ -122,6 +124,12 @@ export default function AreasPage() {
       return;
     }
     
+    // Check area limits for free accounts
+    if (!canCreateArea(profile, areas.length)) {
+      showLimitWarning('area', areas.length, ACCOUNT_LIMITS.FREE.MAX_AREAS);
+      return;
+    }
+    
     setIsCreatingArea(true);
     try {
       // Use user.uid directly from Firebase auth instead of profile.id
@@ -138,6 +146,11 @@ export default function AreasPage() {
       // Close dialog and reset form
       setIsAddAreaDialogOpen(false);
       addAreaForm.reset();
+      
+      // Check if approaching limits after creation
+      if (areas.length >= ACCOUNT_LIMITS.FREE.MAX_AREAS - 1) {
+        showLimitWarning('area', areas.length + 1, ACCOUNT_LIMITS.FREE.MAX_AREAS); 
+      }
     } catch (error: any) {
       console.error("Error creating area:", error);
       
