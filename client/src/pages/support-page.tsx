@@ -82,36 +82,32 @@ export default function SupportPage() {
   };
   
   return (
-    <div className="container max-w-4xl pb-8">
+    <div className="container mx-auto p-4 pb-20">
       <MetaHelmet 
         title="Support | PaintSnap" 
         description="Get help with your PaintSnap account"
       />
       
-      <div className="flex flex-col items-center w-full">
-        <div className="w-full max-w-3xl flex flex-col gap-6">
-          <h1 className="text-3xl font-bold tracking-tight">Support</h1>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LifeBuoy className="h-5 w-5" />
-                Contact Support
-              </CardTitle>
-              <CardDescription>
-                Have a question or need help? Send us a message and we'll get back to you.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isSubmitted ? (
-                <SuccessMessage />
-              ) : (
-                <SupportForm form={form} onSubmit={onSubmit} />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Support</h1>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LifeBuoy className="h-5 w-5" />
+            Contact Support
+          </CardTitle>
+          <CardDescription>
+            Have a question or need help? Send us a message and we'll get back to you.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isSubmitted ? (
+            <SuccessMessage />
+          ) : (
+            <SupportForm form={form} onSubmit={onSubmit} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

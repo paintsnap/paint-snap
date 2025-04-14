@@ -31,20 +31,18 @@ export default function SettingsPage() {
   const { toast } = useToast();
   
   return (
-    <div className="container max-w-4xl pb-8">
+    <div className="container mx-auto p-4 pb-20">
       <MetaHelmet 
         title="Settings | PaintSnap" 
         description="Manage your PaintSnap account settings"
       />
       
-      <div className="flex flex-col items-center w-full">
-        <div className="w-full max-w-3xl flex flex-col gap-6">
-          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
-          
-          <EmailSettings email={profile?.email || user?.email || ""} />
-          <PasswordSettings />
-          <DeleteAccountSection />
-        </div>
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Account Settings</h1>
+      
+      <div className="space-y-6">
+        <EmailSettings email={profile?.email || user?.email || ""} />
+        <PasswordSettings />
+        <DeleteAccountSection />
       </div>
     </div>
   );
