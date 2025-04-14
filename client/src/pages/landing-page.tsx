@@ -181,19 +181,28 @@ export default function LandingPage() {
 
           {/* Wistia Video */}
           <div className="mt-16 max-w-4xl mx-auto">
-            <script src="https://fast.wistia.com/player.js" async></script>
-            <script src="https://fast.wistia.com/embed/8bpiyqbnuk.js" async type="module"></script>
-            <style>
-              {`
-                wistia-player[media-id='8bpiyqbnuk']:not(:defined) { 
-                  background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/8bpiyqbnuk/swatch'); 
-                  display: block; 
-                  filter: blur(5px); 
-                  padding-top: 56.25%; 
-                }
-              `}
-            </style> 
-            <wistia-player media-id="8bpiyqbnuk" aspect="1.7777777777777777"></wistia-player>
+            <div 
+              dangerouslySetInnerHTML={{ 
+                __html: `
+                  <div class="wistia_responsive_padding" style="padding:56.25% 0 0 0;position:relative;">
+                    <div class="wistia_responsive_wrapper" style="height:100%;left:0;position:absolute;top:0;width:100%;">
+                      <iframe src="https://fast.wistia.net/embed/iframe/8bpiyqbnuk?web_component=true&seo=true" 
+                        title="How to use PaintSnap Video" 
+                        allow="autoplay; fullscreen" 
+                        allowtransparency="true" 
+                        frameborder="0" 
+                        scrolling="no" 
+                        class="wistia_embed" 
+                        name="wistia_embed" 
+                        width="100%" 
+                        height="100%">
+                      </iframe>
+                    </div>
+                  </div>
+                  <script src="https://fast.wistia.net/player.js" async></script>
+                `
+              }}
+            />
           </div>
         </div>
       </section>
