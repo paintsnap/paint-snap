@@ -1,10 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useProject } from "@/hooks/use-project";
-import { useAreas } from "@/hooks/use-firebase-data";
+import { useAreas, usePhotosByArea } from "@/hooks/use-firebase-data";
 import { uploadPhoto } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
+import { canAddPhotoToArea, showLimitWarning } from "@/lib/account-limits";
+import { ACCOUNT_LIMITS } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -118,6 +120,14 @@ export default function UploadPage() {
     reader.readAsDataURL(file);
   };
   
+  // Get photos in selected area for checking limits
+  const getPhotoCount = (areaId: string) => {
+    // Find the area in the areas array
+    const selectedArea = safeAreas.find((area: any) => area.id === areaId);
+    // Return the photo count, default to 0 if not found
+    return selectedArea?.photoCount || 0;
+  };
+  
   // Handle form submission with Firebase
   const onSubmit = async (values: UploadFormValues) => {
     if (!user || !profile || !projectId) {
@@ -126,6 +136,15 @@ export default function UploadPage() {
         description: "Missing user or project information. Please try again.",
         variant: "destructive",
       });
+      return;
+    }
+    
+    const areaId = values.areaId || preSelectedAreaId;
+    const photosInArea = getPhotoCount(areaId);
+    
+    // Check photo limits for free accounts
+    if (!canAddPhotoToArea(profile, photosInArea)) {
+      showLimitWarning('photo', photosInArea, ACCOUNT_LIMITS.FREE.MAX_PHOTOS_PER_AREA);
       return;
     }
     
@@ -144,7 +163,6 @@ export default function UploadPage() {
     }, 30000); // 30 seconds timeout
     try {
       const photoFile = values.imageFile;
-      const areaId = values.areaId || preSelectedAreaId;
       
       console.log("Starting photo upload with:", {
         projectId,
