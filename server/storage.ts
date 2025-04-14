@@ -4,7 +4,9 @@ import {
   type InsertPhoto, type InsertTag, type InsertArea, type InsertUser,
   type PhotoWithTags, type PhotoWithTagsDetailed, type AreaWithPhotos, type UserProfile,
   // For backward compatibility
-  type PhotoWithAnnotations, type PhotoWithAnnotationsDetailed, type Annotation, type InsertAnnotation
+  type PhotoWithAnnotations, type PhotoWithAnnotationsDetailed, type Annotation, type InsertAnnotation,
+  // Account limits
+  ACCOUNT_LIMITS
 } from "@shared/schema";
 import { db } from "./db";
 

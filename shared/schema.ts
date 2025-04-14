@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   email: text("email").unique(),
   photoUrl: text("photo_url"),
+  accountType: text("account_type").default("free").notNull(), // 'free' or 'premium'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login").defaultNow().notNull(),
 });
@@ -151,6 +152,21 @@ export interface UserProfile {
   displayName: string | null;
   email: string | null;
   photoUrl: string | null;
+  accountType: string; // 'free' or 'premium'
+}
+
+// Account limits
+export const ACCOUNT_LIMITS = {
+  FREE: {
+    MAX_AREAS: 5,
+    MAX_PHOTOS_PER_AREA: 3,
+    MAX_TAGS_PER_PHOTO: 5
+  },
+  PREMIUM: {
+    MAX_AREAS: 999, // Effectively unlimited
+    MAX_PHOTOS_PER_AREA: 999,
+    MAX_TAGS_PER_PHOTO: 999
+  }
 }
 
 // Type definitions

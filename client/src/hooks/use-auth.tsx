@@ -110,7 +110,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
             photoUrl: firebaseUser.photoURL,
-            username: ''
+            username: '',
+            accountType: 'free' // Default to free account
           };
           
           setProfile(basicProfile);
