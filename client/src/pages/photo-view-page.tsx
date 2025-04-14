@@ -2,12 +2,13 @@ import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { PhotoWithTagsDetailed, Tag, InsertTag, Photo } from "@shared/schema";
+import { PhotoWithTagsDetailed, Tag, InsertTag, Photo, ACCOUNT_LIMITS } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import { usePhotoWithTags } from "@/hooks/use-firebase-data";
 import { useProject } from "@/hooks/use-project";
 import { createTag, updateTag, deleteTag } from "@/lib/firestore";
+import { canAddTagToPhoto, showLimitWarning } from "@/lib/account-limits";
 import { Timestamp } from "firebase/firestore";
 import { 
   Dialog, 
@@ -429,6 +430,15 @@ export default function PhotoViewPage() {
         }
       });
     } else if (tagPosition) {
+      // Check tag limits for free accounts
+      const existingTags = localTags?.length || 0;
+      if (!canAddTagToPhoto(profile, existingTags)) {
+        showLimitWarning('tag', existingTags, ACCOUNT_LIMITS.FREE.MAX_TAGS_PER_PHOTO);
+        setIsTagFormOpen(false);
+        setTagPosition(null);
+        return;
+      }
+      
       // Create new tag with Firebase
       createTagMutation.mutate({
         description: values.description,
