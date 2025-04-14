@@ -37,12 +37,14 @@ export default function SettingsPage() {
         description="Manage your PaintSnap account settings"
       />
       
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Account Settings</h1>
-      
-      <div className="space-y-6">
-        <EmailSettings email={profile?.email || user?.email || ""} />
-        <PasswordSettings />
-        <DeleteAccountSection />
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Account Settings</h1>
+        
+        <div className="space-y-6">
+          <EmailSettings email={profile?.email || user?.email || ""} />
+          <PasswordSettings />
+          <DeleteAccountSection />
+        </div>
       </div>
     </div>
   );

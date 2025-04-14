@@ -88,26 +88,28 @@ export default function SupportPage() {
         description="Get help with your PaintSnap account"
       />
       
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Support</h1>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LifeBuoy className="h-5 w-5" />
-            Contact Support
-          </CardTitle>
-          <CardDescription>
-            Have a question or need help? Send us a message and we'll get back to you.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isSubmitted ? (
-            <SuccessMessage />
-          ) : (
-            <SupportForm form={form} onSubmit={onSubmit} />
-          )}
-        </CardContent>
-      </Card>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Support</h1>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LifeBuoy className="h-5 w-5" />
+              Contact Support
+            </CardTitle>
+            <CardDescription>
+              Have a question or need help? Send us a message and we'll get back to you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isSubmitted ? (
+              <SuccessMessage />
+            ) : (
+              <SupportForm form={form} onSubmit={onSubmit} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
