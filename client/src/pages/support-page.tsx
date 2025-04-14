@@ -29,9 +29,6 @@ import {
 } from "@/components/ui/form";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -47,9 +44,8 @@ export default function SupportPage() {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
   
-  // Get email and name from profile if available
+  // Get email from profile if available
   const defaultValues: Partial<FormValues> = {
-    name: profile?.displayName || "",
     email: profile?.email || "",
     message: "",
   };
@@ -128,20 +124,6 @@ function SupportForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <FormField
           control={form.control}
           name="email"

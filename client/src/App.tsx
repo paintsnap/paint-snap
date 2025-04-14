@@ -120,11 +120,10 @@ function TopNavigation() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {profile ? (profile.displayName || profile.username || "User") : "User"}
-                  </p>
-                  {profile?.email && (
-                    <p className="text-xs leading-none text-muted-foreground">{profile.email}</p>
+                  {profile?.email ? (
+                    <p className="text-sm font-medium leading-none">{profile.email}</p>
+                  ) : (
+                    <p className="text-sm font-medium leading-none">Account</p>
                   )}
                 </div>
               </DropdownMenuLabel>
