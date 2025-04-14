@@ -258,8 +258,21 @@ function Router() {
 
 // Import ProjectProvider
 import { ProjectProvider } from "./hooks/use-project";
+import connectionManager from "./lib/connection-manager";
+import { useEffect } from "react";
 
 function App() {
+  // Initialize the connection manager when the app first loads
+  useEffect(() => {
+    // Initialize the connection manager
+    connectionManager.initialize();
+    
+    // Clean up on component unmount
+    return () => {
+      connectionManager.cleanup();
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

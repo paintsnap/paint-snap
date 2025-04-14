@@ -49,12 +49,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Monitor Firebase auth state
   useEffect(() => {
+    let tokenRefreshInterval: number | null = null;
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      
+      // Clear any existing token refresh interval
+      if (tokenRefreshInterval) {
+        window.clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+      }
       
       if (firebaseUser) {
         try {
           console.log("User authenticated with Firebase:", firebaseUser.uid);
+          
+          // Proactively refresh the token to avoid expiration
+          // This is a preventative measure that keeps the token fresh
+          tokenRefreshInterval = window.setInterval(async () => {
+            try {
+              // Force token refresh every 45 minutes (tokens expire after 1 hour)
+              const token = await firebaseUser.getIdToken(true);
+              console.log("Firebase token refreshed proactively");
+              
+              // Verify the backend still recognizes this token with a lightweight request
+              try {
+                const response = await fetch('/api/user', {
+                  credentials: 'include',
+                  headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                  }
+                });
+                
+                if (!response.ok && response.status === 401) {
+                  console.warn("Backend session expired despite valid Firebase token. Attempting recovery...");
+                  // Attempt to reauthenticate with the backend
+                  await fetch('/api/verify-token', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Cache-Control': 'no-cache',
+                      'Pragma': 'no-cache'
+                    },
+                    body: JSON.stringify({ token })
+                  });
+                }
+              } catch (backendError) {
+                console.error("Error verifying token with backend:", backendError);
+              }
+            } catch (tokenError) {
+              console.error("Error refreshing token:", tokenError);
+            }
+          }, 45 * 60 * 1000); // 45 minutes interval
           
           // Set a basic profile right away so the app can function
           const basicProfile = {
@@ -116,7 +164,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Clean up function to handle component unmount
+    return () => {
+      unsubscribe();
+      // Clear token refresh interval
+      if (tokenRefreshInterval) {
+        window.clearInterval(tokenRefreshInterval);
+      }
+    };
   }, [toast]);
 
   const signInWithGoogle = async () => {
