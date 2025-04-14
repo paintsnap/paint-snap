@@ -1,6 +1,9 @@
 import { ACCOUNT_LIMITS, type UserProfile } from "@shared/schema";
 import { toast } from "@/hooks/use-toast";
 
+// The premium upgrade URL
+export const PREMIUM_UPGRADE_URL = "https://subscribepage.io/paintsnap";
+
 // Helper function to check if user can create more areas
 export function canCreateArea(profile: UserProfile | null, totalAreas: number): boolean {
   if (!profile) return false;
@@ -31,19 +34,32 @@ export function canAddTagToPhoto(profile: UserProfile | null, tagsInPhoto: numbe
   return tagsInPhoto < limits.MAX_TAGS_PER_PHOTO;
 }
 
+// Open the premium upgrade page
+export function openUpgradePage() {
+  window.open(PREMIUM_UPGRADE_URL, '_blank');
+}
+
 // Display warning and error messages
 export function showLimitWarning(type: 'area' | 'photo' | 'tag', current: number, max: number): void {
   if (current >= max) {
     toast({
       title: "Account Limit Reached",
       description: `You've reached the maximum number of ${type}s allowed on your free account. Upgrade to Premium for unlimited ${type}s.`,
-      variant: "destructive"
+      variant: "destructive",
+      action: {
+        label: "Upgrade",
+        onClick: () => openUpgradePage()
+      }
     });
   } else if (current >= max - 1) {
     toast({
       title: "Approaching Account Limit",
       description: `You can only create ${max - current} more ${type}(s) on your free account. Upgrade to Premium for unlimited ${type}s.`,
-      variant: "destructive"
+      variant: "warning",
+      action: {
+        label: "Upgrade",
+        onClick: () => openUpgradePage()
+      }
     });
   }
 }
