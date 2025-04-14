@@ -178,6 +178,23 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
+
+          {/* Wistia Video */}
+          <div className="mt-16 max-w-4xl mx-auto">
+            <script src="https://fast.wistia.com/player.js" async></script>
+            <script src="https://fast.wistia.com/embed/8bpiyqbnuk.js" async type="module"></script>
+            <style>
+              {`
+                wistia-player[media-id='8bpiyqbnuk']:not(:defined) { 
+                  background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/8bpiyqbnuk/swatch'); 
+                  display: block; 
+                  filter: blur(5px); 
+                  padding-top: 56.25%; 
+                }
+              `}
+            </style> 
+            <wistia-player media-id="8bpiyqbnuk" aspect="1.7777777777777777"></wistia-player>
+          </div>
         </div>
       </section>
       
