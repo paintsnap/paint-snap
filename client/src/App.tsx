@@ -101,6 +101,19 @@ function TopNavigation() {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Upgrade Button - Only show for non-premium users */}
+          {profile && profile.accountType !== 'premium' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={openUpgradePage} 
+              className="text-primary border-primary hover:bg-primary/10"
+            >
+              <Crown className="mr-2 h-4 w-4" />
+              <span>Upgrade</span>
+            </Button>
+          )}
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -126,9 +139,23 @@ function TopNavigation() {
                   ) : (
                     <p className="text-sm font-medium leading-none">Account</p>
                   )}
+                  {profile && (
+                    <p className="text-xs text-muted-foreground">
+                      {profile.accountType === 'premium' ? 'Premium Account' : 'Free Account'}
+                    </p>
+                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              
+              {/* Only show upgrade option for non-premium users */}
+              {profile && profile.accountType !== 'premium' && (
+                <DropdownMenuItem onClick={openUpgradePage}>
+                  <Crown className="mr-2 h-4 w-4 text-primary" />
+                  <span className="font-medium">Upgrade to Premium</span>
+                </DropdownMenuItem>
+              )}
+              
               <DropdownMenuItem onClick={() => setLocation("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>

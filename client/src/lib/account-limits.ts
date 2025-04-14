@@ -1,5 +1,7 @@
 import { ACCOUNT_LIMITS, type UserProfile } from "@shared/schema";
 import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import React from "react";
 
 // The premium upgrade URL
 export const PREMIUM_UPGRADE_URL = "https://subscribepage.io/paintsnap";
@@ -46,20 +48,20 @@ export function showLimitWarning(type: 'area' | 'photo' | 'tag', current: number
       title: "Account Limit Reached",
       description: `You've reached the maximum number of ${type}s allowed on your free account. Upgrade to Premium for unlimited ${type}s.`,
       variant: "destructive",
-      action: {
-        label: "Upgrade",
+      action: React.createElement(ToastAction, { 
+        altText: "Upgrade", 
         onClick: () => openUpgradePage()
-      }
+      }, "Upgrade"),
     });
   } else if (current >= max - 1) {
     toast({
       title: "Approaching Account Limit",
       description: `You can only create ${max - current} more ${type}(s) on your free account. Upgrade to Premium for unlimited ${type}s.`,
-      variant: "warning",
-      action: {
-        label: "Upgrade",
+      variant: "default",
+      action: React.createElement(ToastAction, { 
+        altText: "Upgrade", 
         onClick: () => openUpgradePage()
-      }
+      }, "Upgrade"),
     });
   }
 }
