@@ -6,13 +6,21 @@ import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
-import { Home, Plus, Grid, LogOut, Camera, Mail, AlertTriangle, X } from "lucide-react";
+import { Home, Plus, Grid, LogOut, Camera, Mail, AlertTriangle, X, User, Settings, HelpCircle } from "lucide-react";
 import logoImage from "@assets/PaintSnap-Full-Logo-sm.png";
 import logoImageLight from "@assets/PaintSnap-Full-Logo-light-sm.png";
 import logoIcon from "@assets/PaintSnap-Icon.png";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Import our pages
 import LandingPage from "@/pages/landing-page";
@@ -22,6 +30,8 @@ import UploadPage from "@/pages/upload-page";
 import AllPhotosPage from "@/pages/all-photos-page";
 import AreaDetailPage from "@/pages/area-detail-page";
 import PhotoViewPage from "@/pages/photo-view-page";
+import SettingsPage from "@/pages/settings-page";
+import SupportPage from "@/pages/support-page";
 
 // Navigation component for mobile/desktop
 function BottomNavigation() {
@@ -90,16 +100,50 @@ function TopNavigation() {
         </div>
         
         <div className="flex items-center gap-3 ml-auto">
-          <div className="text-sm font-medium">
-            {profile ? (profile.username || profile.displayName || "User") : "User"}
-          </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                {profile?.photoUrl ? (
+                  <img 
+                    src={profile.photoUrl} 
+                    alt={profile?.displayName || "User"} 
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="sr-only">User menu</span>
+                    <User className="h-4 w-4" />
+                  </div>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {profile ? (profile.displayName || profile.username || "User") : "User"}
+                  </p>
+                  {profile?.email && (
+                    <p className="text-xs leading-none text-muted-foreground">{profile.email}</p>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLocation("/settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation("/support")}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                <span>Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
@@ -246,6 +290,23 @@ function Router() {
         return (
           <AppLayout>
             <PhotoViewPage />
+          </AppLayout>
+        );
+      }} />
+
+      {/* Settings and Support Pages */}
+      <ProtectedRoute path="/settings" component={() => {
+        return (
+          <AppLayout>
+            <SettingsPage />
+          </AppLayout>
+        );
+      }} />
+      
+      <ProtectedRoute path="/support" component={() => {
+        return (
+          <AppLayout>
+            <SupportPage />
           </AppLayout>
         );
       }} />
