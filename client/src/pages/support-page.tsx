@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { 
   Card,
@@ -8,77 +8,31 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { MetaHelmet } from "@/components/meta-helmet";
-import { LifeBuoy, Send, AlertCircle, CheckCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Textarea } from "@/components/ui/textarea";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  message: z.string().min(10, {
-    message: "Message must be at least 10 characters.",
-  }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { LifeBuoy, Mail, HelpCircle, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SupportPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const supportEmail = "info@paintsnap.com";
   
-  // Get email from profile if available
-  const defaultValues: Partial<FormValues> = {
-    email: profile?.email || "",
-    message: "",
+  // Prepare mailto link with user's email in the body if available
+  const getMailtoLink = () => {
+    const subject = encodeURIComponent("PaintSnap Support Request");
+    const body = profile?.email 
+      ? encodeURIComponent(`\n\n\n--\nSent from PaintSnap by ${profile.email}`)
+      : '';
+    return `mailto:${supportEmail}?subject=${subject}&body=${body}`;
   };
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues,
-  });
-  
-  const onSubmit = async (data: FormValues) => {
-    try {
-      // In a real app, you'd send this data to your backend
-      console.log("Support form data:", data);
-      
-      // Simulate sending email
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Show success message
-      toast({
-        title: "Message sent",
-        description: "We'll get back to you as soon as possible.",
-        variant: "default",
-      });
-      
-      setIsSubmitted(true);
-    } catch (error) {
-      console.error("Error submitting support form:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
-      });
-    }
+  // Show toast when copying email to clipboard
+  const copyEmailToClipboard = () => {
+    navigator.clipboard.writeText(supportEmail);
+    toast({
+      title: "Email copied to clipboard",
+      description: `${supportEmail} has been copied to your clipboard.`,
+    });
   };
   
   return (
@@ -98,97 +52,67 @@ export default function SupportPage() {
               Contact Support
             </CardTitle>
             <CardDescription>
-              Have a question or need help? Send us a message and we'll get back to you.
+              Have a question or need help? Send us an email and we'll get back to you.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {isSubmitted ? (
-              <SuccessMessage />
-            ) : (
-              <SupportForm form={form} onSubmit={onSubmit} />
-            )}
+          <CardContent className="space-y-6">
+            {/* Support description */}
+            <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+              <div className="flex items-start space-x-3">
+                <HelpCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-1">How can we help?</h3>
+                  <p className="text-slate-700 text-sm mb-3">
+                    Our support team is ready to assist you with any questions or issues you may have about using PaintSnap. 
+                    Simply send an email to our support team using the button below.
+                  </p>
+                  <p className="text-slate-700 text-sm">
+                    Common support topics:
+                  </p>
+                  <ul className="text-sm text-slate-700 list-disc list-inside mt-1 space-y-1">
+                    <li>Account settings and profile information</li>
+                    <li>Issues with uploading or managing photos</li>
+                    <li>Questions about premium features</li>
+                    <li>Suggestions for improvement</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            {/* Contact options */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Email button */}
+              <Button 
+                className="flex-1"
+                onClick={() => window.location.href = getMailtoLink()}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Email Support
+                <ExternalLink className="ml-2 h-3 w-3" />
+              </Button>
+              
+              {/* Copy email button */}
+              <Button 
+                variant="outline"
+                className="flex-1"
+                onClick={copyEmailToClipboard}
+              >
+                Copy Email Address
+              </Button>
+            </div>
+            
+            {/* Support email display */}
+            <div className="text-center pt-2">
+              <p className="text-sm text-slate-600">
+                Support Email: <span className="font-medium">{supportEmail}</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Response time: Within 1-2 business days
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-}
-
-function SupportForm({ 
-  form, 
-  onSubmit 
-}: { 
-  form: ReturnType<typeof useForm<FormValues>>, 
-  onSubmit: (data: FormValues) => Promise<void> 
-}) {
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="your-email@example.com" {...field} />
-              </FormControl>
-              <FormDescription>
-                We'll use this email to respond to your inquiry.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="message"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Message</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="How can we help you?" 
-                  className="min-h-[120px]" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="pt-2">
-          <Button 
-            type="submit" 
-            disabled={form.formState.isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            {form.formState.isSubmitting ? (
-              <span className="flex items-center">
-                <span className="animate-spin mr-2">⟳</span> Sending...
-              </span>
-            ) : (
-              <span className="flex items-center">
-                <Send className="mr-2 h-4 w-4" /> Send Message
-              </span>
-            )}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
-}
-
-function SuccessMessage() {
-  return (
-    <Alert className="bg-green-50 border-green-200">
-      <CheckCircle className="h-4 w-4 text-green-600" />
-      <AlertDescription className="text-green-800">
-        <div className="font-medium mb-2">Thank you for your message!</div>
-        <p>Your message has been sent to our support team at <strong>info@paintsnap.com</strong>. We'll get back to you as soon as possible.</p>
-      </AlertDescription>
-    </Alert>
   );
 }
