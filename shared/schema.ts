@@ -13,15 +13,26 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   email: text("email").unique(),
   photoUrl: text("photo_url"),
-  accountType: text("account_type").default("free").notNull(), // 'free' or 'premium'
+  accountType: text("account_type").default("basic").notNull(), // 'basic', 'premium', or 'pro'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login").defaultNow().notNull(),
+});
+
+// Projects table (only for premium and pro users)
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Areas table (e.g., "Living Room", "Front of House")
 export const areas = pgTable("areas", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
+  projectId: integer("project_id").references(() => projects.id), // Optional for basic users
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -56,15 +67,28 @@ export const tags = pgTable("tags", {
 
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
+  projects: many(projects),
   areas: many(areas),
   photos: many(photos),
   tags: many(tags),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(users, {
+    fields: [projects.userId],
+    references: [users.id],
+  }),
+  areas: many(areas),
 }));
 
 export const areasRelations = relations(areas, ({ one, many }) => ({
   user: one(users, {
     fields: [areas.userId],
     references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [areas.projectId],
+    references: [projects.id],
   }),
   photos: many(photos),
 }));
@@ -99,6 +123,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastLogin: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertAreaSchema = createInsertSchema(areas).omit({
   id: true,
   createdAt: true,
@@ -118,6 +148,16 @@ export const insertTagSchema = createInsertSchema(tags).omit({
 });
 
 // Response types that include related data
+export interface ProjectWithAreas {
+  id: number;
+  userId: number;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  areaCount: number;
+}
+
 export interface PhotoWithTags {
   id: number;
   userId: number;
@@ -138,6 +178,7 @@ export interface PhotoWithTagsDetailed extends PhotoWithTags {
 export interface AreaWithPhotos {
   id: number;
   userId: number;
+  projectId?: number;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -152,29 +193,49 @@ export interface UserProfile {
   displayName: string | null;
   email: string | null;
   photoUrl: string | null;
-  accountType: string; // 'free' or 'premium'
+  accountType: string; // 'basic', 'premium', or 'pro'
+}
+
+export interface UserStats {
+  projectCount: number;
+  areaCount: number;
+  photoCount: number;
+  tagCount: number;
 }
 
 // Account limits
 export const ACCOUNT_LIMITS = {
-  FREE: {
-    MAX_AREAS: 5,
-    MAX_PHOTOS_PER_AREA: 3,
-    MAX_TAGS_PER_PHOTO: 5
+  BASIC: {
+    MAX_PROJECTS: 1,
+    MAX_AREAS_PER_PROJECT: 3,
+    MAX_PHOTOS_PER_AREA: 10,
+    MAX_TAGS_PER_PHOTO: 3,
+    ALLOW_PDF_EXPORT: false
   },
   PREMIUM: {
-    MAX_AREAS: 999, // Effectively unlimited
-    MAX_PHOTOS_PER_AREA: 999,
-    MAX_TAGS_PER_PHOTO: 999
+    MAX_PROJECTS: 5,
+    MAX_AREAS_PER_PROJECT: 99,
+    MAX_PHOTOS_PER_AREA: 99,
+    MAX_TAGS_PER_PHOTO: 99,
+    ALLOW_PDF_EXPORT: true
+  },
+  PRO: {
+    MAX_PROJECTS: 5, // Same as premium for now
+    MAX_AREAS_PER_PROJECT: 99,
+    MAX_PHOTOS_PER_AREA: 99,
+    MAX_TAGS_PER_PHOTO: 99,
+    ALLOW_PDF_EXPORT: true
   }
 }
 
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type InsertArea = z.infer<typeof insertAreaSchema>;
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 export type User = typeof users.$inferSelect;
+export type Project = typeof projects.$inferSelect;
 export type Area = typeof areas.$inferSelect;
 export type Photo = typeof photos.$inferSelect;
 export type Tag = typeof tags.$inferSelect;

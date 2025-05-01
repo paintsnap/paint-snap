@@ -20,6 +20,15 @@ export interface IStorage {
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUserProfile(userId: number): Promise<UserProfile | undefined>;
+  updateUserAccountType(userId: number, accountType: string): Promise<User | undefined>;
+  getUserStats(userId: number): Promise<UserStats>;
+  
+  // Project methods (for premium/pro users)
+  getProjects(userId: number): Promise<ProjectWithAreas[]>;
+  getProjectById(id: number): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, name: string, description: string | null, userId: number): Promise<Project | undefined>;
+  deleteProject(id: number, userId: number): Promise<boolean>;
   
   // Area methods
   getAreas(userId: number): Promise<AreaWithPhotos[]>;

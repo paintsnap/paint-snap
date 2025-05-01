@@ -1,0 +1,99 @@
+1. User Types
+Add a new accountType field to the user model/schema:
+
+ts
+Copy
+Edit
+// user.model.ts or equivalent
+type AccountType = 'basic' | 'premium' | 'pro';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  accountType: AccountType; // default = 'basic'
+  // ...other fields
+}
+Ensure accountType is initialised to 'basic' on sign-up.
+
+2. Usage Limits by Tier
+Feature	Basic	Premium	Pro (future)
+Projects per user	1	5	99
+Areas per project	3	99	99
+Photos per Area	10	99	99
+Tags per Photo	3	99	99
+PDF export	❌	✅	✅ (advanced)
+Collaboration	❌	❌	✅ (future)
+
+3. Feature Gating
+Implement gating for the features above using accountType.
+
+Example (pseudo code):
+
+ts
+Copy
+Edit
+function canCreateProject(user) {
+  const limit = user.accountType === 'premium' ? 5 :
+                user.accountType === 'pro' ? 99 : 1;
+  return user.projects.length < limit;
+}
+
+function canAddArea(user) {
+  const limit = user.accountType === 'premium' ? 99 :
+                user.accountType === 'pro' ? 99 : 3;
+  return currentProject.areas.length < limit;
+}
+If a user hits the limit:
+
+Show a message: “This feature is available with Premium – [Upgrade Now]”
+
+[Upgrade Now] should link to the existing upgrade page (e.g. /upgrade)
+
+4. Upgrade Handling (Back-end Only for Now)
+Add a temporary internal way to change a user's accountType for testing:
+
+ts
+Copy
+Edit
+// Temporary admin/test endpoint – REMOVE later
+POST /admin/upgrade-user
+{
+  "userId": "abc123",
+  "newType": "premium"
+}
+Update the user record:
+
+ts
+Copy
+Edit
+db.users.update({ id: userId }, { accountType: newType });
+No front-end Stripe or billing logic yet. Leave this placeholder in the relevant upgrade module:
+
+ts
+Copy
+Edit
+// TODO: Replace with Stripe billing when ready
+// Current flow: manually upgrade accountType via admin
+5. Keep the Existing Upgrade Button
+Do not show front-end upgrade purchase buttons yet.
+
+Keep the existing "Register Interest" button and /upgrade page.
+
+Use this for all gated feature redirects.
+
+Example:
+
+ts
+Copy
+Edit
+if (!canCreateProject(user)) {
+  redirectTo('/upgrade');
+}
+6. Pro Tier – Skeleton Only
+Include pro in the enum and schema.
+
+Don’t build any Pro-only features yet.
+
+Do not show the Pro tier in the UI except as a “coming soon” label if needed.
+

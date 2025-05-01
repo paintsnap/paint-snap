@@ -6,23 +6,37 @@ import React from "react";
 // The premium upgrade URL
 export const PREMIUM_UPGRADE_URL = "https://subscribepage.io/paintsnap";
 
-// Helper function to check if user can create more areas
+// Helper function to get the appropriate limits for the user's account type
+export function getLimitsForUser(profile: UserProfile | null) {
+  if (!profile) return ACCOUNT_LIMITS.BASIC;
+  
+  const { accountType } = profile;
+  if (accountType === 'premium') return ACCOUNT_LIMITS.PREMIUM;
+  if (accountType === 'pro') return ACCOUNT_LIMITS.PRO;
+  return ACCOUNT_LIMITS.BASIC;
+}
+
+// Helper function to check if user can create more projects
+export function canCreateProject(profile: UserProfile | null, totalProjects: number): boolean {
+  if (!profile) return false;
+  
+  const limits = getLimitsForUser(profile);
+  return totalProjects < limits.MAX_PROJECTS;
+}
+
+// Helper function to check if user can create more areas in a project
 export function canCreateArea(profile: UserProfile | null, totalAreas: number): boolean {
   if (!profile) return false;
   
-  const { accountType } = profile;
-  const limits = accountType === 'premium' ? ACCOUNT_LIMITS.PREMIUM : ACCOUNT_LIMITS.FREE;
-  
-  return totalAreas < limits.MAX_AREAS;
+  const limits = getLimitsForUser(profile);
+  return totalAreas < limits.MAX_AREAS_PER_PROJECT;
 }
 
 // Helper function to check if user can add more photos to an area
 export function canAddPhotoToArea(profile: UserProfile | null, photosInArea: number): boolean {
   if (!profile) return false;
   
-  const { accountType } = profile;
-  const limits = accountType === 'premium' ? ACCOUNT_LIMITS.PREMIUM : ACCOUNT_LIMITS.FREE;
-  
+  const limits = getLimitsForUser(profile);
   return photosInArea < limits.MAX_PHOTOS_PER_AREA;
 }
 
@@ -30,10 +44,22 @@ export function canAddPhotoToArea(profile: UserProfile | null, photosInArea: num
 export function canAddTagToPhoto(profile: UserProfile | null, tagsInPhoto: number): boolean {
   if (!profile) return false;
   
-  const { accountType } = profile;
-  const limits = accountType === 'premium' ? ACCOUNT_LIMITS.PREMIUM : ACCOUNT_LIMITS.FREE;
-  
+  const limits = getLimitsForUser(profile);
   return tagsInPhoto < limits.MAX_TAGS_PER_PHOTO;
+}
+
+// Helper function to check if user can export PDF
+export function canExportPDF(profile: UserProfile | null): boolean {
+  if (!profile) return false;
+  
+  const limits = getLimitsForUser(profile);
+  return limits.ALLOW_PDF_EXPORT;
+}
+
+// Helper function to check if user has premium features
+export function hasPremiumFeatures(profile: UserProfile | null): boolean {
+  if (!profile) return false;
+  return profile.accountType === 'premium' || profile.accountType === 'pro';
 }
 
 // Open the premium upgrade page
@@ -42,19 +68,22 @@ export function openUpgradePage() {
 }
 
 // Display warning and error messages with specific limits
-export function showLimitWarning(type: 'area' | 'photo' | 'tag', current: number, max: number): void {
-  const limits = ACCOUNT_LIMITS.FREE;
+export function showLimitWarning(type: 'project' | 'area' | 'photo' | 'tag', current: number, max: number): void {
+  const basicLimits = ACCOUNT_LIMITS.BASIC;
+  const premiumLimits = ACCOUNT_LIMITS.PREMIUM;
   
   if (current >= max) {
     let description = '';
     
     // Create specific messages for each type of limit
-    if (type === 'area') {
-      description = `You've reached the maximum limit of ${limits.MAX_AREAS} areas on your free account. Upgrade to Premium for unlimited areas.`;
+    if (type === 'project') {
+      description = `You've reached the maximum limit of ${basicLimits.MAX_PROJECTS} project on your basic account. Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
+    } else if (type === 'area') {
+      description = `You've reached the maximum limit of ${basicLimits.MAX_AREAS_PER_PROJECT} areas per project on your basic account. Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
     } else if (type === 'photo') {
-      description = `You've reached the maximum limit of ${limits.MAX_PHOTOS_PER_AREA} photos in this area. Free accounts are limited to ${limits.MAX_PHOTOS_PER_AREA} photos per area. Upgrade to Premium for unlimited photos.`;
+      description = `You've reached the maximum limit of ${basicLimits.MAX_PHOTOS_PER_AREA} photos in this area. Basic accounts are limited to ${basicLimits.MAX_PHOTOS_PER_AREA} photos per area. Upgrade to Premium for up to ${premiumLimits.MAX_PHOTOS_PER_AREA} photos per area.`;
     } else if (type === 'tag') {
-      description = `You've reached the maximum limit of ${limits.MAX_TAGS_PER_PHOTO} tags on this photo. Free accounts are limited to ${limits.MAX_TAGS_PER_PHOTO} tags per photo. Upgrade to Premium for unlimited tags.`;
+      description = `You've reached the maximum limit of ${basicLimits.MAX_TAGS_PER_PHOTO} tags on this photo. Basic accounts are limited to ${basicLimits.MAX_TAGS_PER_PHOTO} tags per photo. Upgrade to Premium for up to ${premiumLimits.MAX_TAGS_PER_PHOTO} tags per photo.`;
     }
     
     toast({
@@ -70,12 +99,14 @@ export function showLimitWarning(type: 'area' | 'photo' | 'tag', current: number
     let description = '';
     
     // Create specific messages for each type of limit
-    if (type === 'area') {
-      description = `You can only create ${max - current} more area on your free account (maximum ${limits.MAX_AREAS}). Upgrade to Premium for unlimited areas.`;
+    if (type === 'project') {
+      description = `You can only create ${max - current} more project on your basic account (maximum ${basicLimits.MAX_PROJECTS}). Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
+    } else if (type === 'area') {
+      description = `You can only create ${max - current} more area in this project on your basic account (maximum ${basicLimits.MAX_AREAS_PER_PROJECT}). Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
     } else if (type === 'photo') {
-      description = `You can only add ${max - current} more photo to this area on your free account (maximum ${limits.MAX_PHOTOS_PER_AREA} per area). Upgrade to Premium for unlimited photos.`;
+      description = `You can only add ${max - current} more photo to this area on your basic account (maximum ${basicLimits.MAX_PHOTOS_PER_AREA} per area). Upgrade to Premium for up to ${premiumLimits.MAX_PHOTOS_PER_AREA} photos per area.`;
     } else if (type === 'tag') {
-      description = `You can only add ${max - current} more tag to this photo on your free account (maximum ${limits.MAX_TAGS_PER_PHOTO} per photo). Upgrade to Premium for unlimited tags.`;
+      description = `You can only add ${max - current} more tag to this photo on your basic account (maximum ${basicLimits.MAX_TAGS_PER_PHOTO} per photo). Upgrade to Premium for up to ${premiumLimits.MAX_TAGS_PER_PHOTO} tags per photo.`;
     }
     
     toast({
@@ -91,20 +122,30 @@ export function showLimitWarning(type: 'area' | 'photo' | 'tag', current: number
 }
 
 export function getRemainingLimits(profile: UserProfile | null, 
-                                  areas: number, 
-                                  photosInCurrentArea: number, 
-                                  tagsInCurrentPhoto: number) {
+                                  projects: number = 0,
+                                  areas: number = 0, 
+                                  photosInCurrentArea: number = 0, 
+                                  tagsInCurrentPhoto: number = 0) {
   if (!profile) {
-    return { areasRemaining: 0, photosRemaining: 0, tagsRemaining: 0, isPremium: false };
+    return { 
+      projectsRemaining: 0,
+      areasRemaining: 0, 
+      photosRemaining: 0, 
+      tagsRemaining: 0, 
+      isPremiumOrPro: false,
+      canExportPDF: false
+    };
   }
   
-  const { accountType } = profile;
-  const limits = accountType === 'premium' ? ACCOUNT_LIMITS.PREMIUM : ACCOUNT_LIMITS.FREE;
+  const limits = getLimitsForUser(profile);
+  const isPremiumOrPro = profile.accountType === 'premium' || profile.accountType === 'pro';
   
   return {
-    areasRemaining: Math.max(0, limits.MAX_AREAS - areas),
+    projectsRemaining: Math.max(0, limits.MAX_PROJECTS - projects),
+    areasRemaining: Math.max(0, limits.MAX_AREAS_PER_PROJECT - areas),
     photosRemaining: Math.max(0, limits.MAX_PHOTOS_PER_AREA - photosInCurrentArea),
     tagsRemaining: Math.max(0, limits.MAX_TAGS_PER_PHOTO - tagsInCurrentPhoto),
-    isPremium: accountType === 'premium'
+    isPremiumOrPro,
+    canExportPDF: limits.ALLOW_PDF_EXPORT
   };
 }
