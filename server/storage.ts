@@ -10,7 +10,7 @@ import {
   ACCOUNT_LIMITS
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -134,8 +134,81 @@ export class MemStorage implements IStorage {
       firebaseUid: user.firebaseUid,
       displayName: user.displayName,
       email: user.email,
-      photoUrl: user.photoUrl
+      photoUrl: user.photoUrl,
+      accountType: user.accountType || 'basic'
     };
+  }
+  
+  async updateUserAccountType(userId: number, accountType: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    const updatedUser: User = {
+      ...user,
+      accountType,
+      updatedAt: new Date()
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async getUserStats(userId: number): Promise<UserStats> {
+    // Count projects (placeholder - will implement when needed)
+    const projectCount = 0;
+    
+    // Count areas
+    const userAreas = Array.from(this.areas.values())
+      .filter(area => area.userId === userId);
+    
+    // Count photos
+    const userPhotos = Array.from(this.photos.values())
+      .filter(photo => photo.userId === userId);
+    
+    // Count tags
+    const userTags = Array.from(this.tags.values())
+      .filter(tag => tag.userId === userId);
+    
+    return {
+      projectCount,
+      areaCount: userAreas.length,
+      photoCount: userPhotos.length,
+      tagCount: userTags.length
+    };
+  }
+  
+  // Project methods for premium/pro users
+  async getProjects(userId: number): Promise<ProjectWithAreas[]> {
+    // Placeholder - will implement when needed
+    return [];
+  }
+  
+  async getProjectById(id: number): Promise<Project | undefined> {
+    // Placeholder - will implement when needed
+    return undefined;
+  }
+  
+  async createProject(project: InsertProject): Promise<Project> {
+    // Placeholder - will implement when needed
+    const now = new Date();
+    return {
+      id: 1,
+      name: project.name,
+      description: project.description,
+      userId: project.userId,
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  
+  async updateProject(id: number, name: string, description: string | null, userId: number): Promise<Project | undefined> {
+    // Placeholder - will implement when needed
+    return undefined;
+  }
+  
+  async deleteProject(id: number, userId: number): Promise<boolean> {
+    // Placeholder - will implement when needed
+    return false;
   }
 
   // Area methods
@@ -496,7 +569,7 @@ export class MemStorage implements IStorage {
 }
 
 // Import needed dependencies for database operations
-import { eq, and, sql, asc, desc } from "drizzle-orm";
+import { eq, and, sql, asc, desc, count } from "drizzle-orm";
 
 // Implement the DatabaseStorage class
 export class DatabaseStorage implements IStorage {
@@ -550,8 +623,230 @@ export class DatabaseStorage implements IStorage {
       firebaseUid: user.firebaseUid,
       displayName: user.displayName,
       email: user.email,
-      photoUrl: user.photoUrl
+      photoUrl: user.photoUrl,
+      accountType: user.accountType || 'basic'
     };
+  }
+  
+  async updateUserAccountType(userId: number, accountType: string): Promise<User | undefined> {
+    try {
+      // Validate if user exists
+      const existingUser = await this.getUserById(userId);
+      if (!existingUser) {
+        return undefined;
+      }
+      
+      // Update user's account type
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          accountType,
+          updatedAt: new Date() 
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user account type:", error);
+      return undefined;
+    }
+  }
+  
+  async getUserStats(userId: number): Promise<UserStats> {
+    try {
+      // Get project count
+      const projectCountResult = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(projects)
+        .where(eq(projects.userId, userId));
+      
+      const projectCount = projectCountResult[0]?.count || 0;
+      
+      // Get area count
+      const areaCountResult = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(areas)
+        .where(eq(areas.userId, userId));
+      
+      const areaCount = areaCountResult[0]?.count || 0;
+      
+      // Get photo count
+      const photoCountResult = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(photos)
+        .where(eq(photos.userId, userId));
+      
+      const photoCount = photoCountResult[0]?.count || 0;
+      
+      // Get tag count
+      const tagCountResult = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(tags)
+        .where(eq(tags.userId, userId));
+      
+      const tagCount = tagCountResult[0]?.count || 0;
+      
+      return {
+        projectCount: Number(projectCount),
+        areaCount: Number(areaCount),
+        photoCount: Number(photoCount),
+        tagCount: Number(tagCount)
+      };
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      return {
+        projectCount: 0,
+        areaCount: 0,
+        photoCount: 0,
+        tagCount: 0
+      };
+    }
+  }
+  
+  async getProjects(userId: number): Promise<ProjectWithAreas[]> {
+    try {
+      // Get all projects for the user with a count of areas
+      const userProjects = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          userId: projects.userId,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt
+        })
+        .from(projects)
+        .where(eq(projects.userId, userId));
+      
+      // For each project, get area count
+      const projectsWithAreas = await Promise.all(
+        userProjects.map(async (project) => {
+          const areaCountResult = await db
+            .select({ count: sql<number>`COUNT(*)::int` })
+            .from(areas)
+            .where(and(
+              eq(areas.userId, userId),
+              eq(areas.projectId, project.id)
+            ));
+          
+          const areaCount = areaCountResult[0]?.count || 0;
+          
+          return {
+            ...project,
+            areaCount: Number(areaCount)
+          };
+        })
+      );
+      
+      return projectsWithAreas;
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      return [];
+    }
+  }
+  
+  async getProjectById(id: number): Promise<Project | undefined> {
+    try {
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id));
+      
+      return project;
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      return undefined;
+    }
+  }
+  
+  async createProject(project: InsertProject): Promise<Project> {
+    try {
+      const [newProject] = await db
+        .insert(projects)
+        .values(project)
+        .returning();
+      
+      return newProject;
+    } catch (error) {
+      console.error("Error creating project:", error);
+      throw error;
+    }
+  }
+  
+  async updateProject(
+    id: number, 
+    name: string, 
+    description: string | null, 
+    userId: number
+  ): Promise<Project | undefined> {
+    try {
+      // Check if project exists and belongs to the user
+      const [existingProject] = await db
+        .select()
+        .from(projects)
+        .where(and(
+          eq(projects.id, id),
+          eq(projects.userId, userId)
+        ));
+      
+      if (!existingProject) {
+        return undefined;
+      }
+      
+      const [updatedProject] = await db
+        .update(projects)
+        .set({ 
+          name, 
+          description,
+          updatedAt: new Date() 
+        })
+        .where(eq(projects.id, id))
+        .returning();
+      
+      return updatedProject;
+    } catch (error) {
+      console.error("Error updating project:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteProject(id: number, userId: number): Promise<boolean> {
+    try {
+      // Check if project exists and belongs to the user
+      const [existingProject] = await db
+        .select()
+        .from(projects)
+        .where(and(
+          eq(projects.id, id),
+          eq(projects.userId, userId)
+        ));
+      
+      if (!existingProject) {
+        return false;
+      }
+      
+      // Get all areas associated with this project
+      const projectAreas = await db
+        .select()
+        .from(areas)
+        .where(eq(areas.projectId, id));
+      
+      // Delete all areas and their associated photos/tags
+      for (const area of projectAreas) {
+        await this.deleteArea(area.id, userId);
+      }
+      
+      // Delete the project
+      const result = await db
+        .delete(projects)
+        .where(eq(projects.id, id));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      return false;
+    }
   }
 
   // Area methods
