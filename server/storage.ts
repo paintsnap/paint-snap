@@ -73,20 +73,24 @@ export class MemStorage implements IStorage {
   private tags: Map<number, Tag>;
   private areas: Map<number, Area>;
   private users: Map<number, User>;
+  private projects: Map<number, Project>;
   private photoIdCounter: number;
   private tagIdCounter: number;
   private areaIdCounter: number;
   private userIdCounter: number;
+  private projectIdCounter: number;
 
   constructor() {
     this.photos = new Map();
     this.tags = new Map();
     this.areas = new Map();
     this.users = new Map();
+    this.projects = new Map();
     this.photoIdCounter = 1;
     this.tagIdCounter = 1;
     this.areaIdCounter = 1;
     this.userIdCounter = 1;
+    this.projectIdCounter = 1;
   }
 
   // User methods
@@ -154,8 +158,9 @@ export class MemStorage implements IStorage {
   }
   
   async getUserStats(userId: number): Promise<UserStats> {
-    // Count projects (placeholder - will implement when needed)
-    const projectCount = 0;
+    // Count projects
+    const userProjects = Array.from(this.projects.values())
+      .filter(project => project.userId === userId);
     
     // Count areas
     const userAreas = Array.from(this.areas.values())
@@ -170,7 +175,7 @@ export class MemStorage implements IStorage {
       .filter(tag => tag.userId === userId);
     
     return {
-      projectCount,
+      projectCount: userProjects.length,
       areaCount: userAreas.length,
       photoCount: userPhotos.length,
       tagCount: userTags.length
@@ -179,36 +184,85 @@ export class MemStorage implements IStorage {
   
   // Project methods for premium/pro users
   async getProjects(userId: number): Promise<ProjectWithAreas[]> {
-    // Placeholder - will implement when needed
-    return [];
+    const userProjects = Array.from(this.projects.values())
+      .filter(project => project.userId === userId);
+    
+    return Promise.all(userProjects.map(async project => {
+      // Count areas in project
+      const areaCount = Array.from(this.areas.values())
+        .filter(area => area.projectId === project.id)
+        .length;
+      
+      return {
+        ...project,
+        areaCount
+      };
+    }));
   }
   
   async getProjectById(id: number): Promise<Project | undefined> {
-    // Placeholder - will implement when needed
-    return undefined;
+    return this.projects.get(id);
   }
   
   async createProject(project: InsertProject): Promise<Project> {
-    // Placeholder - will implement when needed
+    const id = ++this.projectIdCounter;
     const now = new Date();
-    return {
-      id: 1,
-      name: project.name,
-      description: project.description,
+    
+    const newProject: Project = {
+      id,
       userId: project.userId,
+      name: project.name,
+      description: project.description || null,
       createdAt: now,
       updatedAt: now
     };
+    
+    this.projects.set(id, newProject);
+    return newProject;
   }
   
   async updateProject(id: number, name: string, description: string | null, userId: number): Promise<Project | undefined> {
-    // Placeholder - will implement when needed
-    return undefined;
+    const project = this.projects.get(id);
+    
+    if (!project || project.userId !== userId) {
+      return undefined;
+    }
+    
+    const updatedProject: Project = {
+      ...project,
+      name,
+      description,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(id, updatedProject);
+    return updatedProject;
   }
   
   async deleteProject(id: number, userId: number): Promise<boolean> {
-    // Placeholder - will implement when needed
-    return false;
+    const project = this.projects.get(id);
+    
+    if (!project || project.userId !== userId) {
+      return false;
+    }
+    
+    // Get all areas associated with this project
+    const projectAreas = Array.from(this.areas.values())
+      .filter(area => area.projectId === id);
+    
+    // For each area, update it to remove the project association
+    // We don't delete the areas, just detach them from the project
+    for (const area of projectAreas) {
+      const updatedArea = {
+        ...area,
+        projectId: null,
+        updatedAt: new Date()
+      };
+      this.areas.set(area.id, updatedArea);
+    }
+    
+    // Delete the project
+    return this.projects.delete(id);
   }
 
   // Area methods
@@ -243,6 +297,7 @@ export class MemStorage implements IStorage {
     const newArea: Area = {
       id,
       userId: area.userId,
+      projectId: area.projectId || null,
       name: area.name,
       createdAt: now,
       updatedAt: now
