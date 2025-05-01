@@ -1,14 +1,16 @@
 import { 
-  photos, tags, areas, users,
-  type Photo, type Tag, type Area, type User,
-  type InsertPhoto, type InsertTag, type InsertArea, type InsertUser,
+  photos, tags, areas, users, projects,
+  type Photo, type Tag, type Area, type User, type Project,
+  type InsertPhoto, type InsertTag, type InsertArea, type InsertUser, type InsertProject,
   type PhotoWithTags, type PhotoWithTagsDetailed, type AreaWithPhotos, type UserProfile,
+  type ProjectWithAreas, type UserStats,
   // For backward compatibility
   type PhotoWithAnnotations, type PhotoWithAnnotationsDetailed, type Annotation, type InsertAnnotation,
   // Account limits
   ACCOUNT_LIMITS
 } from "@shared/schema";
 import { db } from "./db";
+import { eq, and, count } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need

@@ -287,4 +287,72 @@ router.post("/logout", (req: Request, res: Response) => {
   });
 });
 
+// Admin endpoint to update a user's account type
+// For security, in a production app this would require proper authorization
+router.post("/update-account-type", async (req: Request, res: Response) => {
+  try {
+    const { userId, accountType } = req.body;
+    
+    if (!userId || !accountType) {
+      return res.status(400).json({ message: "userId and accountType are required" });
+    }
+    
+    // Validate accountType
+    if (!['basic', 'premium', 'pro'].includes(accountType)) {
+      return res.status(400).json({ message: "accountType must be one of: basic, premium, pro" });
+    }
+    
+    // Convert userId to number if it's a string
+    const id = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+    
+    // Check if user exists
+    const user = await storage.getUserById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Update user's account type
+    const updatedUser = await storage.updateUserAccountType(id, accountType);
+    
+    if (!updatedUser) {
+      return res.status(500).json({ message: "Failed to update user account type" });
+    }
+    
+    // Return success
+    res.json({ 
+      message: "User account type updated successfully",
+      user: {
+        id: updatedUser.id,
+        accountType: updatedUser.accountType
+      }
+    });
+  } catch (error) {
+    console.error("Error updating account type:", error);
+    res.status(500).json({ message: "Failed to update user account type" });
+  }
+});
+
+// Get user statistics
+router.get("/user-stats", async (req: Request, res: Response) => {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const userId = (req.user as any).id;
+    
+    // Get user stats
+    const stats = await storage.getUserStats(userId);
+    
+    res.json(stats);
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    res.status(500).json({ message: "Failed to fetch user statistics" });
+  }
+});
+
 export default router;

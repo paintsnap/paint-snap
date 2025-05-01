@@ -23,8 +23,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MetaHelmet } from "@/components/meta-helmet";
-import { AlertCircle, Mail, Key, Trash2 } from "lucide-react";
+import { AlertCircle, Mail, Key, Trash2, BarChart, Camera, Grid, Tag, Crown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { PREMIUM_UPGRADE_URL } from "@/lib/account-limits";
 
 export default function SettingsPage() {
   const { user, profile } = useAuth();
@@ -41,12 +45,153 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-6">Account Settings</h1>
         
         <div className="space-y-6">
+          <AccountStatistics />
           <EmailSettings email={profile?.email || user?.email || ""} />
           <PasswordSettings />
           <DeleteAccountSection />
         </div>
       </div>
     </div>
+  );
+}
+
+function AccountStatistics() {
+  const { profile } = useAuth();
+  
+  // Fetch user stats
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ['/api/auth/user-stats'],
+    enabled: !!profile,
+  });
+  
+  const accountTypeColors = {
+    basic: "bg-zinc-100 text-zinc-800",
+    premium: "bg-amber-100 text-amber-800",
+    pro: "bg-purple-100 text-purple-800",
+  };
+  
+  const accountTypeLabel = (type: string) => {
+    switch(type) {
+      case 'premium':
+        return (
+          <div className="flex items-center gap-1">
+            <span>Premium</span>
+            <Crown className="h-4 w-4" />
+          </div>
+        );
+      case 'pro':
+        return (
+          <div className="flex items-center gap-1">
+            <span>Professional</span>
+            <Crown className="h-4 w-4" />
+          </div>
+        );
+      default:
+        return "Basic";
+    }
+  };
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart className="h-5 w-5" />
+          Account Statistics
+        </CardTitle>
+        <CardDescription>
+          Overview of your account usage and current plan.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Account Type</p>
+              {profile ? (
+                <Badge variant="outline" className={`text-sm py-1 px-2 font-medium ${profile.accountType && accountTypeColors[profile.accountType as keyof typeof accountTypeColors]}`}>
+                  {profile.accountType ? accountTypeLabel(profile.accountType) : "Basic"}
+                </Badge>
+              ) : (
+                <Skeleton className="h-6 w-20" />
+              )}
+            </div>
+            
+            {profile?.accountType === 'basic' && (
+              <div>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+                  onClick={() => window.open(PREMIUM_UPGRADE_URL, '_blank')}
+                >
+                  <Crown className="mr-2 h-4 w-4" />
+                  Upgrade to Premium
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
+              <Grid className="mb-2 h-5 w-5 text-slate-600" />
+              <p className="text-sm font-medium text-muted-foreground">Projects</p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-12 mt-1" />
+              ) : (
+                <p className="text-2xl font-bold">{stats?.projectCount || 0}</p>
+              )}
+            </div>
+            
+            <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
+              <div className="mb-2 h-5 w-5 text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18"/>
+                  <path d="M7 14.5v-5" />
+                  <path d="M11 17v-5" />
+                  <path d="M15 19v-5" />
+                  <path d="M19 19v-5" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Areas</p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-12 mt-1" />
+              ) : (
+                <p className="text-2xl font-bold">{stats?.areaCount || 0}</p>
+              )}
+            </div>
+            
+            <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
+              <Camera className="mb-2 h-5 w-5 text-slate-600" />
+              <p className="text-sm font-medium text-muted-foreground">Photos</p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-12 mt-1" />
+              ) : (
+                <p className="text-2xl font-bold">{stats?.photoCount || 0}</p>
+              )}
+            </div>
+            
+            <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
+              <Tag className="mb-2 h-5 w-5 text-slate-600" />
+              <p className="text-sm font-medium text-muted-foreground">Tags</p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-12 mt-1" />
+              ) : (
+                <p className="text-2xl font-bold">{stats?.tagCount || 0}</p>
+              )}
+            </div>
+          </div>
+          
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Failed to load account statistics. Please try again later.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
