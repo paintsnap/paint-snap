@@ -77,9 +77,9 @@ export function showLimitWarning(type: 'project' | 'area' | 'photo' | 'tag', cur
     
     // Create specific messages for each type of limit
     if (type === 'project') {
-      description = `You've reached the maximum limit of ${basicLimits.MAX_PROJECTS} project on your basic account. Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
+      description = `You've reached the maximum limit of ${basicLimits.MAX_PROJECTS} project on your Basic account. Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
     } else if (type === 'area') {
-      description = `You've reached the maximum limit of ${basicLimits.MAX_AREAS_PER_PROJECT} areas per project on your basic account. Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
+      description = `You've reached the maximum limit of ${basicLimits.MAX_AREAS_PER_PROJECT} areas per project on your Basic account. Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
     } else if (type === 'photo') {
       description = `You've reached the maximum limit of ${basicLimits.MAX_PHOTOS_PER_AREA} photos in this area. Basic accounts are limited to ${basicLimits.MAX_PHOTOS_PER_AREA} photos per area. Upgrade to Premium for up to ${premiumLimits.MAX_PHOTOS_PER_AREA} photos per area.`;
     } else if (type === 'tag') {
@@ -100,13 +100,13 @@ export function showLimitWarning(type: 'project' | 'area' | 'photo' | 'tag', cur
     
     // Create specific messages for each type of limit
     if (type === 'project') {
-      description = `You can only create ${max - current} more project on your basic account (maximum ${basicLimits.MAX_PROJECTS}). Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
+      description = `You can only create ${max - current} more project on your Basic account (maximum ${basicLimits.MAX_PROJECTS}). Upgrade to Premium for up to ${premiumLimits.MAX_PROJECTS} projects.`;
     } else if (type === 'area') {
-      description = `You can only create ${max - current} more area in this project on your basic account (maximum ${basicLimits.MAX_AREAS_PER_PROJECT}). Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
+      description = `You can only create ${max - current} more area in this project on your Basic account (maximum ${basicLimits.MAX_AREAS_PER_PROJECT}). Upgrade to Premium for up to ${premiumLimits.MAX_AREAS_PER_PROJECT} areas per project.`;
     } else if (type === 'photo') {
-      description = `You can only add ${max - current} more photo to this area on your basic account (maximum ${basicLimits.MAX_PHOTOS_PER_AREA} per area). Upgrade to Premium for up to ${premiumLimits.MAX_PHOTOS_PER_AREA} photos per area.`;
+      description = `You can only add ${max - current} more photo to this area on your Basic account (maximum ${basicLimits.MAX_PHOTOS_PER_AREA} per area). Upgrade to Premium for up to ${premiumLimits.MAX_PHOTOS_PER_AREA} photos per area.`;
     } else if (type === 'tag') {
-      description = `You can only add ${max - current} more tag to this photo on your basic account (maximum ${basicLimits.MAX_TAGS_PER_PHOTO} per photo). Upgrade to Premium for up to ${premiumLimits.MAX_TAGS_PER_PHOTO} tags per photo.`;
+      description = `You can only add ${max - current} more tag to this photo on your Basic account (maximum ${basicLimits.MAX_TAGS_PER_PHOTO} per photo). Upgrade to Premium for up to ${premiumLimits.MAX_TAGS_PER_PHOTO} tags per photo.`;
     }
     
     toast({
