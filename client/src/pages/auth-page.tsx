@@ -274,13 +274,20 @@ export default function AuthPage() {
               </div>
             )}
             
-            {/* Forgot Password Form */}
+            {/* Enhanced Forgot Password Form */}
             {activeTab === "forgot-password" && (
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-center">Reset Your Password</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-gray-600">
                   Enter your email address and we'll send you instructions to reset your password.
                 </p>
+                
+                <Alert className="bg-blue-50 border-blue-200 mb-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-xs text-blue-700">
+                    Please check both your inbox and spam folder after requesting a password reset. The email might take a few minutes to arrive.
+                  </AlertDescription>
+                </Alert>
                 
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="space-y-2">
@@ -300,6 +307,9 @@ export default function AuthPage() {
                         required
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter the email address you used to register your account
+                    </p>
                   </div>
                   
                   <Button 
@@ -310,7 +320,7 @@ export default function AuthPage() {
                     {isResetting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
+                        Sending reset email...
                       </>
                     ) : (
                       "Send Reset Instructions"
