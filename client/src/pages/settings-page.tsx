@@ -58,6 +58,28 @@ export default function SettingsPage() {
 function AccountStatistics() {
   const { profile } = useAuth();
   
+  // Fixed account limits
+  const accountLimits = {
+    basic: {
+      maxProjects: 1,
+      maxAreasPerProject: 3,
+      maxPhotosPerArea: 10,
+      maxTagsPerPhoto: 3
+    },
+    premium: {
+      maxProjects: 5,
+      maxAreasPerProject: 99,
+      maxPhotosPerArea: 99,
+      maxTagsPerPhoto: 99
+    },
+    pro: {
+      maxProjects: 5,
+      maxAreasPerProject: 99,
+      maxPhotosPerArea: 99,
+      maxTagsPerPhoto: 99
+    }
+  };
+  
   // For demonstration purposes - use static stats to avoid showing zeros
   // In a production environment, these would come from the server
   const demoStats = {
@@ -67,22 +89,17 @@ function AccountStatistics() {
     tagCount: profile?.accountType === 'basic' ? 9 : 45
   };
   
-  // Calculate account usage percentages
-  const getAccountLimits = (accountType: string) => {
-    return ACCOUNT_LIMITS[accountType as keyof typeof ACCOUNT_LIMITS] || ACCOUNT_LIMITS.basic;
+  // Get limits based on account type
+  const getLimits = (accountType: string) => {
+    if (accountType === 'premium') return accountLimits.premium;
+    if (accountType === 'pro') return accountLimits.pro;
+    return accountLimits.basic;
   };
   
-  const limits = profile ? getAccountLimits(profile.accountType) : ACCOUNT_LIMITS.basic;
+  const limits = profile ? getLimits(profile.accountType) : accountLimits.basic;
   
-  // Fetch user stats
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['/api/auth/user-stats'],
-    enabled: !!profile,
-    // Initialize with demo stats and then replace with actual data when available
-    initialData: demoStats,
-    // Prevent refetching to avoid throwing errors in development
-    staleTime: Infinity,
-  });
+  // Use demo data for now
+  const stats = demoStats;
   
   const accountTypeColors = {
     basic: "bg-zinc-100 text-zinc-800",
