@@ -388,6 +388,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Log the specific error code for debugging
       console.log("Firebase error code:", authError.code);
       
+      // Special handling for too many requests error
+      if (authError.code === 'auth/too-many-requests') {
+        toast({
+          title: "Too many reset attempts",
+          description: "For security reasons, Firebase has temporarily blocked password reset requests from this account. Please try again in a few minutes.",
+          variant: "destructive",
+          duration: 10000 // Show for longer
+        });
+        return; // Don't set error state for rate limiting
+      }
+      
       // Create user-friendly error messages
       let errorMessage = "We couldn't send a password reset email. Please try again.";
       let errorTitle = "Reset Failed";

@@ -376,7 +376,18 @@ function PasswordSettings() {
       setResetEmailSent(true);
     } catch (err: any) {
       console.error("Error sending password reset email:", err);
-      setError(getErrorMessage(err));
+      
+      // Special handling for too many requests error
+      if (err.code === 'auth/too-many-requests') {
+        toast({
+          title: "Too many reset attempts",
+          description: "For security reasons, Firebase has temporarily blocked password reset requests from your account. Please try again in a few minutes.",
+          variant: "destructive",
+          duration: 10000 // Show for 10 seconds
+        });
+      } else {
+        setError(getErrorMessage(err));
+      }
     } finally {
       setIsSubmitting(false);
     }
