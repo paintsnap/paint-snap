@@ -362,15 +362,9 @@ function PasswordSettings() {
         throw new Error("User not found");
       }
       
-      // Enhanced actionCodeSettings for better email delivery
-      const actionCodeSettings = {
-        // URL you want to redirect back to after password reset
-        url: window.location.origin + '/settings',
-        handleCodeInApp: false
-      };
-      
       console.log("Attempting to send password reset to:", user.email);
-      await sendPasswordResetEmail(auth, user.email, actionCodeSettings);
+      // Use the basic version without custom redirect URL to avoid the domain whitelist error
+      await sendPasswordResetEmail(auth, user.email);
       console.log("Password reset email request successful");
       
       toast({

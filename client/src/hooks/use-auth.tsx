@@ -370,19 +370,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sendPasswordReset = async (email: string): Promise<void> => {
     setError(null);
     try {
-      // Enhanced actionCodeSettings for better email delivery
-      const actionCodeSettings = {
-        // URL you want to redirect back to after password reset - use absolute URL
-        url: window.location.origin + '/auth',
-        // This must be false for standard email reset links (Firebase default)
-        handleCodeInApp: false
-      };
-      
       console.log("Attempting to send password reset to:", email);
-      console.log("Using action code settings:", actionCodeSettings);
       
-      // Send the password reset email with actionCodeSettings
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      // Send the password reset email without custom actionCodeSettings
+      // This uses Firebase's default settings, which don't require domain verification
+      await sendPasswordResetEmail(auth, email);
       console.log("Password reset email request successful");
       
       toast({
