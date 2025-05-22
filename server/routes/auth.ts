@@ -339,16 +339,35 @@ router.post("/update-account-type", async (req: Request, res: Response) => {
 // Get user statistics
 router.get("/user-stats", async (req: Request, res: Response) => {
   try {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
+    // First try Firebase token authentication
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const admin = getFirebaseAdmin();
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const firebaseUid = decodedToken.uid;
+        
+        // Get user by Firebase UID
+        const user = await storage.getUserByFirebaseUid(firebaseUid);
+        if (user) {
+          // Get user stats
+          const stats = await storage.getUserStats(user.id);
+          return res.json(stats);
+        }
+      } catch (firebaseError) {
+        console.error("Firebase auth error:", firebaseError);
+      }
     }
     
-    const userId = (req.user as any).id;
+    // Fall back to session-based authentication
+    if (req.isAuthenticated() && req.user) {
+      const userId = (req.user as any).id;
+      const stats = await storage.getUserStats(userId);
+      return res.json(stats);
+    }
     
-    // Get user stats
-    const stats = await storage.getUserStats(userId);
-    
-    res.json(stats);
+    return res.status(401).json({ message: "Not authenticated" });
   } catch (error) {
     console.error("Error fetching user stats:", error);
     res.status(500).json({ message: "Failed to fetch user statistics" });
