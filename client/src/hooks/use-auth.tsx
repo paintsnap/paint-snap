@@ -370,11 +370,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sendPasswordReset = async (email: string): Promise<void> => {
     setError(null);
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Configure ActionCodeSettings to properly handle the password reset
+      const actionCodeSettings = {
+        // URL you want to redirect back to after password reset
+        url: window.location.origin + '/auth',
+        // This must be true for email link sign-in
+        handleCodeInApp: false
+      };
+      
+      // Use the enhanced version with actionCodeSettings
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       
       toast({
         title: "Password Reset Email Sent",
-        description: "Please check your email for instructions to reset your password.",
+        description: "Please check your email inbox and spam folder for instructions to reset your password.",
       });
     } catch (error) {
       console.error("Error sending password reset:", error);

@@ -112,7 +112,7 @@ export default function AuthPage() {
   // Get the sendPasswordReset function from auth context
   const { sendPasswordReset } = useAuth();
 
-  // Handle forgot password submission
+  // Handle forgot password submission with improved feedback
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail || !resetEmail.includes('@')) {
@@ -126,16 +126,27 @@ export default function AuthPage() {
     
     setIsResetting(true);
     try {
+      // Use the improved sendPasswordReset function with enhanced feedback
       await sendPasswordReset(resetEmail);
+      
       toast({
         title: "Password Reset Email Sent",
-        description: "If an account exists with this email, you'll receive instructions to reset your password.",
+        description: "If an account exists with this email, you'll receive instructions to reset your password. Please check both your inbox and spam folder.",
+        duration: 6000, // Show for longer (6 seconds)
       });
-      // Return to login tab after successful password reset request
-      setActiveTab("login");
+      
+      // Add a small delay before returning to login tab for better UX
+      setTimeout(() => {
+        setActiveTab("login");
+      }, 2000);
     } catch (error) {
       console.error("Password reset error:", error);
-      // Error handling is already done in the hook
+      // Error handling is already done in the hook, but let's add a backup here
+      toast({
+        title: "Password Reset Error",
+        description: "There was a problem sending the password reset email. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsResetting(false);
     }
