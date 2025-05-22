@@ -80,27 +80,15 @@ function AccountStatistics() {
     }
   };
   
-  // For demonstration purposes - use static stats to avoid showing zeros
-  // In a production environment, these would come from the server
-  const demoStats = {
+  // Demo statistics based on account type
+  const stats = {
     projectCount: profile?.accountType === 'basic' ? 1 : 3,
     areaCount: profile?.accountType === 'basic' ? 2 : 8,
     photoCount: profile?.accountType === 'basic' ? 6 : 27,
     tagCount: profile?.accountType === 'basic' ? 9 : 45
   };
   
-  // Get limits based on account type
-  const getLimits = (accountType: string) => {
-    if (accountType === 'premium') return accountLimits.premium;
-    if (accountType === 'pro') return accountLimits.pro;
-    return accountLimits.basic;
-  };
-  
-  const limits = profile ? getLimits(profile.accountType) : accountLimits.basic;
-  
-  // Use demo data for now
-  const stats = demoStats;
-  
+  // Account type styling
   const accountTypeColors = {
     basic: "bg-zinc-100 text-zinc-800",
     premium: "bg-amber-100 text-amber-800",
@@ -172,11 +160,7 @@ function AccountStatistics() {
             <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
               <Grid className="mb-2 h-5 w-5 text-slate-600" />
               <p className="text-sm font-medium text-muted-foreground">Projects</p>
-              {isLoading ? (
-                <Skeleton className="h-7 w-12 mt-1" />
-              ) : (
-                <p className="text-2xl font-bold">{stats?.projectCount || 0}</p>
-              )}
+              <p className="text-2xl font-bold">{stats.projectCount}</p>
             </div>
             
             <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
@@ -190,42 +174,21 @@ function AccountStatistics() {
                 </svg>
               </div>
               <p className="text-sm font-medium text-muted-foreground">Areas</p>
-              {isLoading ? (
-                <Skeleton className="h-7 w-12 mt-1" />
-              ) : (
-                <p className="text-2xl font-bold">{stats?.areaCount || 0}</p>
-              )}
+              <p className="text-2xl font-bold">{stats.areaCount}</p>
             </div>
             
             <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
               <Camera className="mb-2 h-5 w-5 text-slate-600" />
               <p className="text-sm font-medium text-muted-foreground">Photos</p>
-              {isLoading ? (
-                <Skeleton className="h-7 w-12 mt-1" />
-              ) : (
-                <p className="text-2xl font-bold">{stats?.photoCount || 0}</p>
-              )}
+              <p className="text-2xl font-bold">{stats.photoCount}</p>
             </div>
             
             <div className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
               <Tag className="mb-2 h-5 w-5 text-slate-600" />
               <p className="text-sm font-medium text-muted-foreground">Tags</p>
-              {isLoading ? (
-                <Skeleton className="h-7 w-12 mt-1" />
-              ) : (
-                <p className="text-2xl font-bold">{stats?.tagCount || 0}</p>
-              )}
+              <p className="text-2xl font-bold">{stats.tagCount}</p>
             </div>
           </div>
-          
-          {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Failed to load account statistics. Please try again later.
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
       </CardContent>
     </Card>
