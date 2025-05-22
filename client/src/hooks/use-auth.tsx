@@ -366,28 +366,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Password reset function
+  // Password reset function with debugging
   const sendPasswordReset = async (email: string): Promise<void> => {
     setError(null);
     try {
-      // Configure ActionCodeSettings to properly handle the password reset
+      // Enhanced actionCodeSettings for better email delivery
       const actionCodeSettings = {
-        // URL you want to redirect back to after password reset
+        // URL you want to redirect back to after password reset - use absolute URL
         url: window.location.origin + '/auth',
-        // This must be true for email link sign-in
+        // This must be false for standard email reset links (Firebase default)
         handleCodeInApp: false
       };
       
-      // Use the enhanced version with actionCodeSettings
+      console.log("Attempting to send password reset to:", email);
+      console.log("Using action code settings:", actionCodeSettings);
+      
+      // Send the password reset email with actionCodeSettings
       await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      console.log("Password reset email request successful");
       
       toast({
         title: "Password Reset Email Sent",
-        description: "Please check your email inbox and spam folder for instructions to reset your password.",
+        description: "Please check your email inbox and spam folder for instructions to reset your password. It may take a few minutes to arrive.",
+        duration: 8000,
       });
     } catch (error) {
       console.error("Error sending password reset:", error);
       const authError = error as AuthError;
+      // Log the specific error code for debugging
+      console.log("Firebase error code:", authError.code);
       
       // Create user-friendly error messages
       let errorMessage = "We couldn't send a password reset email. Please try again.";
