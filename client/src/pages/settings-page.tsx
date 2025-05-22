@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { getAuth, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
+import { getAuth, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser, sendPasswordResetEmail } from "firebase/auth";
 import { 
   Card,
   CardContent,
@@ -296,6 +296,8 @@ function PasswordSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResetOption, setShowResetOption] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -344,6 +346,40 @@ function PasswordSettings() {
     } catch (err: any) {
       console.error("Error updating password:", err);
       setError(getErrorMessage(err));
+      
+      // If authentication failed, show reset option
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-mismatch') {
+        setShowResetOption(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleResetPassword = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user || !user.email) {
+        throw new Error("User not found");
+      }
+      
+      await sendPasswordResetEmail(auth, user.email);
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your inbox for instructions to reset your password.",
+        variant: "default",
+      });
+      
+      setResetEmailSent(true);
+    } catch (err: any) {
+      console.error("Error sending password reset email:", err);
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -361,54 +397,102 @@ function PasswordSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+        {resetEmailSent ? (
+          <div className="space-y-4">
+            <Alert variant="default" className="bg-green-50 border-green-200">
+              <AlertCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                A password reset link has been sent to your email address. Please check your inbox and follow the instructions.
+              </AlertDescription>
             </Alert>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword2">Current Password</Label>
-            <Input
-              id="currentPassword2"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter your current password"
-              required
-            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResetEmailSent(false);
+                setShowResetOption(false);
+              }}
+            >
+              Return to password form
+            </Button>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter new password"
-              required
-            />
+        ) : (
+          <div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword2">Current Password</Label>
+                <Input
+                  id="currentPassword2"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  required
+                />
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating..." : "Update Password"}
+                </Button>
+                
+                {showResetOption && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleResetPassword}
+                    disabled={isSubmitting}
+                  >
+                    Forgot Password? Send Reset Email
+                  </Button>
+                )}
+              </div>
+            </form>
+            
+            {!showResetOption && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground mb-2">Can't remember your current password?</p>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowResetOption(true)}
+                >
+                  Reset Password via Email
+                </Button>
+              </div>
+            )}
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              required
-            />
-          </div>
-          
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Update Password"}
-          </Button>
-        </form>
+        )}
       </CardContent>
     </Card>
   );
