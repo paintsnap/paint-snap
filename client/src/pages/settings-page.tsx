@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MetaHelmet } from "@/components/meta-helmet";
-import { AlertCircle, Mail, Key, Trash2, BarChart, Camera, Grid, Tag, Crown } from "lucide-react";
+import { AlertCircle, Mail, Key, Trash2, BarChart, Camera, Grid, Tag, Crown, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -296,7 +296,6 @@ function PasswordSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showResetOption, setShowResetOption] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const { toast } = useToast();
   
@@ -346,11 +345,6 @@ function PasswordSettings() {
     } catch (err: any) {
       console.error("Error updating password:", err);
       setError(getErrorMessage(err));
-      
-      // If authentication failed, show reset option
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-mismatch') {
-        setShowResetOption(true);
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -368,11 +362,20 @@ function PasswordSettings() {
         throw new Error("User not found");
       }
       
-      await sendPasswordResetEmail(auth, user.email);
+      // Enhanced actionCodeSettings for better email delivery
+      const actionCodeSettings = {
+        // URL you want to redirect back to after password reset
+        url: window.location.origin + '/settings',
+        handleCodeInApp: false
+      };
+      
+      console.log("Attempting to send password reset to:", user.email);
+      await sendPasswordResetEmail(auth, user.email, actionCodeSettings);
+      console.log("Password reset email request successful");
       
       toast({
         title: "Password reset email sent",
-        description: "Check your inbox for instructions to reset your password.",
+        description: "Check your inbox and spam folder for instructions to reset your password.",
         variant: "default",
       });
       
@@ -402,15 +405,12 @@ function PasswordSettings() {
             <Alert variant="default" className="bg-green-50 border-green-200">
               <AlertCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                A password reset link has been sent to your email address. Please check your inbox and follow the instructions.
+                A password reset link has been sent to your email address. Please check your inbox and spam folder and follow the instructions.
               </AlertDescription>
             </Alert>
             <Button
               variant="outline"
-              onClick={() => {
-                setResetEmailSent(false);
-                setShowResetOption(false);
-              }}
+              onClick={() => setResetEmailSent(false)}
             >
               Return to password form
             </Button>
@@ -461,36 +461,22 @@ function PasswordSettings() {
                 />
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Updating..." : "Update Password"}
-                </Button>
-                
-                {showResetOption && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleResetPassword}
-                    disabled={isSubmitting}
-                  >
-                    Forgot Password? Send Reset Email
-                  </Button>
-                )}
-              </div>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Password"}
+              </Button>
             </form>
             
-            {!showResetOption && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-2">Can't remember your current password?</p>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowResetOption(true)}
-                >
-                  Reset Password via Email
-                </Button>
-              </div>
-            )}
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Can't remember your current password?</p>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleResetPassword}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Reset Password via Email"}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
