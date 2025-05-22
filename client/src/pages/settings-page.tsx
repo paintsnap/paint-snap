@@ -56,12 +56,42 @@ export default function SettingsPage() {
 }
 
 function AccountStatistics() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   
-  // Fetch user stats
+  // Custom fetch function for user stats with Firebase token
+  const fetchUserStats = async () => {
+    if (!user) return null;
+    
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/auth/user-stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      toast({
+        title: "Error loading statistics",
+        description: "Unable to load your account statistics. Please try again later.",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+  
+  // Fetch user stats with custom fetcher
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['/api/auth/user-stats'],
-    enabled: !!profile,
+    queryFn: fetchUserStats,
+    enabled: !!user && !!profile,
   });
   
   const accountTypeColors = {

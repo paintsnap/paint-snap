@@ -339,20 +339,47 @@ router.post("/update-account-type", async (req: Request, res: Response) => {
 // Get user statistics
 router.get("/user-stats", async (req: Request, res: Response) => {
   try {
+    console.log("User stats request - headers:", req.headers);
+    
     // First try Firebase token authentication
     const authHeader = req.headers.authorization;
+    console.log("Authorization header present:", !!authHeader);
+    
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+      console.log("Bearer token extracted, verifying with Firebase...");
+      
       try {
         const admin = getFirebaseAdmin();
         const decodedToken = await admin.auth().verifyIdToken(token);
         const firebaseUid = decodedToken.uid;
+        console.log("Token verified successfully for Firebase UID:", firebaseUid);
         
         // Get user by Firebase UID
         const user = await storage.getUserByFirebaseUid(firebaseUid);
+        console.log("User found from Firebase UID:", !!user, user?.id);
+        
         if (user) {
           // Get user stats
           const stats = await storage.getUserStats(user.id);
+          console.log("User stats fetched:", stats);
+          return res.json(stats);
+        } else {
+          // Create a user if one doesn't exist for this Firebase UID
+          console.log("Creating new user record for Firebase UID:", firebaseUid);
+          const newUser = await storage.createUser({
+            firebaseUid,
+            username: null,
+            password: null,
+            displayName: decodedToken.name || null,
+            email: decodedToken.email || null,
+            photoUrl: decodedToken.picture || null,
+            accountType: 'basic'
+          });
+          
+          console.log("New user created with ID:", newUser.id);
+          const stats = await storage.getUserStats(newUser.id);
+          console.log("User stats for new user:", stats);
           return res.json(stats);
         }
       } catch (firebaseError) {
@@ -361,12 +388,16 @@ router.get("/user-stats", async (req: Request, res: Response) => {
     }
     
     // Fall back to session-based authentication
+    console.log("Falling back to session auth, isAuthenticated:", req.isAuthenticated());
     if (req.isAuthenticated() && req.user) {
       const userId = (req.user as any).id;
+      console.log("Session auth successful, user ID:", userId);
       const stats = await storage.getUserStats(userId);
+      console.log("User stats from session:", stats);
       return res.json(stats);
     }
     
+    console.log("No authentication method successful, returning 401");
     return res.status(401).json({ message: "Not authenticated" });
   } catch (error) {
     console.error("Error fetching user stats:", error);
